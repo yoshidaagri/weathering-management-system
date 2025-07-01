@@ -1,0 +1,10 @@
+{
+  "name": "weathering-lambda-layer",
+  "version": "1.0.0",
+  "description": "Shared dependencies for Weathering Project Lambda functions",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1691.0",
+    "uuid": "^9.0.0"
+  }
+}

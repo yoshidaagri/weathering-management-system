@@ -1,0 +1,23 @@
+# Weathering Management System Code Owners
+# These owners will be the default owners for everything in the repo.
+
+# Global owners
+* @yoshidaagri
+
+# Frontend
+/frontend/ @yoshidaagri
+
+# Infrastructure
+/infrastructure/ @yoshidaagri
+*.yml @yoshidaagri
+*.yaml @yoshidaagri
+
+# Lambda functions
+/lambda/ @yoshidaagri
+
+# Documentation
+/docs/ @yoshidaagri
+*.md @yoshidaagri
+
+# GitHub Actions
+/.github/ @yoshidaagri

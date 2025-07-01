@@ -1,0 +1,70 @@
+{
+    "development": {
+      "parameters": [
+        {
+          "name": "/weathering-project/dev/table-name",
+          "value": "WeatheringProject-dev",
+          "type": "String",
+          "description": "DynamoDB table name for development"
+        },
+        {
+          "name": "/weathering-project/dev/user-pool-region",
+          "value": "ap-northeast-1",
+          "type": "String",
+          "description": "Cognito User Pool region"
+        },
+        {
+          "name": "/weathering-project/dev/log-level",
+          "value": "DEBUG",
+          "type": "String",
+          "description": "CloudWatch log level"
+        },
+        {
+          "name": "/weathering-project/dev/api-throttle-rate",
+          "value": "100",
+          "type": "String",
+          "description": "API Gateway throttle rate limit"
+        },
+        {
+          "name": "/weathering-project/dev/api-throttle-burst",
+          "value": "200",
+          "type": "String",
+          "description": "API Gateway throttle burst limit"
+        }
+      ]
+    },
+    "production": {
+      "parameters": [
+        {
+          "name": "/weathering-project/prod/table-name",
+          "value": "WeatheringProject-prod",
+          "type": "String",
+          "description": "DynamoDB table name for production"
+        },
+        {
+          "name": "/weathering-project/prod/user-pool-region",
+          "value": "ap-northeast-1",
+          "type": "String",
+          "description": "Cognito User Pool region"
+        },
+        {
+          "name": "/weathering-project/prod/log-level",
+          "value": "INFO",
+          "type": "String",
+          "description": "CloudWatch log level"
+        },
+        {
+          "name": "/weathering-project/prod/api-throttle-rate",
+          "value": "1000",
+          "type": "String",
+          "description": "API Gateway throttle rate limit"
+        },
+        {
+          "name": "/weathering-project/prod/api-throttle-burst",
+          "value": "2000",
+          "type": "String",
+          "description": "API Gateway throttle burst limit"
+        }
+      ]
+    }
+  }

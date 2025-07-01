@@ -1,0 +1,84 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-1
+  NODE_VERSION: 18
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Lambda layers
+        run: |
+          cd layers/nodejs
+          npm ci --production
+          cd ../..
+
+      - name: Build Lambda functions
+        run: |
+          for func in customer-api project-api measurement-api report-generator; do
+            cd lambda/$func
+            npm ci
+            npm run build
+            cd ../..
+          done
+
+      - name: Deploy with CDK
+        run: |
+          npm install -g aws-cdk
+          cdk deploy WeatheringProjectStack-prod --require-approval never
+
+      - name: Deploy frontend to S3
+        run: |
+          cd frontend
+          npm ci
+          npm run build:prod
+          aws s3 sync build/ s3://weathering-frontend-${{ secrets.AWS_ACCOUNT_ID }}-prod --delete
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }} --paths "/*"
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            Production deployment completed
+            Commit: ${{ github.sha }}
+          draft: false
+          prerelease: false
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment completed - Release v${{ github.run_number }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()

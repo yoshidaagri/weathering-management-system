@@ -1,0 +1,41 @@
+{
+  "name": "weathering-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.490.0",
+    "@aws-sdk/client-s3": "^3.490.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.0",
+    "aws-sdk": "^2.1550.0",
+    "chart.js": "^4.4.0",
+    "next": "^14.1.0",
+    "postcss": "^8.4.0",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.59.0",
+    "recharts": "^2.10.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0",
+    "zustand": "^4.5.7"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "24.0.8",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.1.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "typescript": "5.8.3"
+  }
+}

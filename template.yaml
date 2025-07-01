@@ -1,0 +1,306 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Weathering Project Serverless Application
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref WeatheringTable
+        BUCKET_NAME: !Ref DataBucket
+    Layers:
+      - !Ref CommonLayer
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  # DynamoDB Table
+  WeatheringTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'WeatheringProject-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+        - AttributeName: GSI2PK
+          AttributeType: S
+        - AttributeName: GSI2SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: GSI2
+          KeySchema:
+            - AttributeName: GSI2PK
+              KeyType: HASH
+            - AttributeName: GSI2SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # S3 Buckets
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'weathering-frontend-${AWS::AccountId}-${Environment}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'weathering-data-${AWS::AccountId}-${Environment}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: ArchiveOldData
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+
+  # Cognito
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub 'weathering-users-${Environment}'
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub 'weathering-client-${Environment}'
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # Lambda Layer
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub 'weathering-common-${Environment}'
+      ContentUri: layers/nodejs/
+      CompatibleRuntimes:
+        - nodejs18.x
+
+  # Lambda Functions
+  CustomerApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'weathering-customer-api-${Environment}'
+      CodeUri: lambda/customer-api/
+      Handler: index.handler
+      Events:
+        GetCustomers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref WeatheringApi
+            Path: /customers
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+        CreateCustomer:
+          Type: Api
+          Properties:
+            RestApiId: !Ref WeatheringApi
+            Path: /customers
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  ProjectApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'weathering-project-api-${Environment}'
+      CodeUri: lambda/project-api/
+      Handler: index.handler
+      Events:
+        GetProjects:
+          Type: Api
+          Properties:
+            RestApiId: !Ref WeatheringApi
+            Path: /projects
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+        CreateProject:
+          Type: Api
+          Properties:
+            RestApiId: !Ref WeatheringApi
+            Path: /projects
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  MeasurementApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'weathering-measurement-api-${Environment}'
+      CodeUri: lambda/measurement-api/
+      Handler: index.handler
+      Events:
+        GetMeasurements:
+          Type: Api
+          Properties:
+            RestApiId: !Ref WeatheringApi
+            Path: /projects/{projectId}/measurements
+            Method: GET
+            Auth:
+              Authorizer: CognitoAuthorizer
+        CreateMeasurement:
+          Type: Api
+          Properties:
+            RestApiId: !Ref WeatheringApi
+            Path: /projects/{projectId}/measurements
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  ReportGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'weathering-report-generator-${Environment}'
+      CodeUri: lambda/report-generator/
+      Handler: index.handler
+      Timeout: 300
+      MemorySize: 1024
+      Events:
+        GenerateReport:
+          Type: Api
+          Properties:
+            RestApiId: !Ref WeatheringApi
+            Path: /projects/{projectId}/reports
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # API Gateway
+  WeatheringApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub 'weathering-api-${Environment}'
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+
+  # CloudFront
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+            Id: S3Origin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOAI}'
+        Enabled: true
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        PriceClass: PriceClass_100
+
+  CloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub 'OAI for ${WebsiteBucket}'
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${WeatheringApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+  
+  WebsiteUrl:
+    Description: CloudFront distribution URL
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+  
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+  
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient

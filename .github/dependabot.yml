@@ -1,0 +1,63 @@
+version: 2
+updates:
+  # Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  # Root dependencies (CDK, etc.)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "infrastructure"
+
+  # Lambda function dependencies
+  - package-ecosystem: "npm"
+    directory: "/lambda/customer-api"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "lambda"
+
+  - package-ecosystem: "npm"
+    directory: "/lambda/project-api"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "lambda"
+
+  - package-ecosystem: "npm"
+    directory: "/lambda/measurement-api"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "lambda"
+
+  - package-ecosystem: "npm"
+    directory: "/lambda/report-generator"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "lambda"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
