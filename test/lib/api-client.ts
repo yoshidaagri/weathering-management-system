@@ -71,15 +71,16 @@ class ApiClient {
     try {
       const { tokens } = useAuthStore.getState();
       
-      const headers = {
+      // ヘッダーを構築
+      const baseHeaders = {
         'Content-Type': 'application/json',
         ...options.headers,
       };
 
       // 認証トークンを追加
-      if (tokens?.accessToken) {
-        headers['Authorization'] = `Bearer ${tokens.accessToken}`;
-      }
+      const headers = tokens?.accessToken 
+        ? { ...baseHeaders, 'Authorization': `Bearer ${tokens.accessToken}` }
+        : baseHeaders;
 
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,

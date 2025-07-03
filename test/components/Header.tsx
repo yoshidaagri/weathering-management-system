@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthStore } from '@/lib/auth-store';
-import { User } from '@/lib/cognito';
+import { useAuthStore } from '../lib/auth-store';
+import { User } from '../lib/cognito';
 
 interface HeaderProps {
   user: User | null;

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useAuthStore } from '@/lib/auth-store';
+import { useAuthStore } from '../lib/auth-store';
 
 interface ForgotPasswordFormProps {
   onSuccess?: () => void;
@@ -25,12 +25,19 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
   const [username, setUsername] = useState('');
 
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
+    register: registerRequest,
+    handleSubmit: handleSubmitRequest,
+    formState: { errors: errorsRequest },
+    reset: resetRequest,
+  } = useForm<ForgotPasswordData>();
+
+  const {
+    register: registerReset,
+    handleSubmit: handleSubmitReset,
+    formState: { errors: errorsReset },
     watch,
-    reset,
-  } = useForm();
+    reset: resetReset,
+  } = useForm<ResetPasswordData>();
 
   const newPassword = watch('newPassword');
 
@@ -40,7 +47,7 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
       await forgotPassword(data.username);
       setUsername(data.username);
       setStep('reset');
-      reset();
+      resetRequest();
     } catch (error) {
       // エラーはstore内で処理済み
     }
@@ -72,7 +79,7 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmitReset)} className="space-y-4">
+          <form onSubmit={handleSubmitReset(onSubmitReset)} className="space-y-4">
             <div>
               <label htmlFor="confirmationCode" className="block text-sm font-medium text-gray-700 mb-1">
                 確認コード *
@@ -80,7 +87,7 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
               <input
                 id="confirmationCode"
                 type="text"
-                {...register('confirmationCode', { 
+                {...registerReset('confirmationCode', { 
                   required: '確認コードは必須です',
                   pattern: { value: /^\d{6}$/, message: '確認コードは6桁の数字です' }
                 })}
@@ -88,8 +95,8 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
                 placeholder="123456"
                 disabled={isLoading}
               />
-              {errors.confirmationCode && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmationCode.message}</p>
+              {errorsReset.confirmationCode && (
+                <p className="mt-1 text-sm text-red-600">{errorsReset.confirmationCode.message}</p>
               )}
             </div>
 
@@ -100,7 +107,7 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
               <input
                 id="newPassword"
                 type="password"
-                {...register('newPassword', { 
+                {...registerReset('newPassword', { 
                   required: 'パスワードは必須です',
                   minLength: { value: 8, message: 'パスワードは8文字以上である必要があります' },
                   pattern: { 
@@ -112,8 +119,8 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
                 placeholder="新しいパスワード"
                 disabled={isLoading}
               />
-              {errors.newPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.newPassword.message}</p>
+              {errorsReset.newPassword && (
+                <p className="mt-1 text-sm text-red-600">{errorsReset.newPassword.message}</p>
               )}
             </div>
 
@@ -124,16 +131,16 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
               <input
                 id="confirmPassword"
                 type="password"
-                {...register('confirmPassword', { 
+                {...registerReset('confirmPassword', { 
                   required: 'パスワード確認は必須です',
-                  validate: value => value === newPassword || 'パスワードが一致しません'
+                  validate: (value: string) => value === newPassword || 'パスワードが一致しません'
                 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="パスワードを再入力"
                 disabled={isLoading}
               />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+              {errorsReset.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">{errorsReset.confirmPassword.message}</p>
               )}
             </div>
 
@@ -177,7 +184,7 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmitRequest)} className="space-y-4">
+        <form onSubmit={handleSubmitRequest(onSubmitRequest)} className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
               ユーザー名 *
@@ -185,7 +192,7 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
             <input
               id="username"
               type="text"
-              {...register('username', { 
+              {...registerRequest('username', { 
                 required: 'ユーザー名は必須です',
                 minLength: { value: 3, message: 'ユーザー名は3文字以上である必要があります' }
               })}
@@ -193,8 +200,8 @@ export default function ForgotPasswordForm({ onSuccess, onSwitchToLogin }: Forgo
               placeholder="ユーザー名を入力"
               disabled={isLoading}
             />
-            {errors.username && (
-              <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+            {errorsRequest.username && (
+              <p className="mt-1 text-sm text-red-600">{errorsRequest.username.message}</p>
             )}
           </div>
 

@@ -18,9 +18,10 @@ export class WeatheringProjectStack extends cdk.Stack {
     // S3 Bucket for React App
     const websiteBucket = new s3.Bucket(this, 'WeatheringWebsiteBucket', {
       bucketName: `weathering-project-frontend-${this.account}`,
-      websiteIndexDocument: 'index.html',
-      websiteErrorDocument: 'error.html',
+      //websiteIndexDocument: 'index.html',
+      //websiteErrorDocument: 'error.html',
       publicReadAccess: false,
+      // 👇 OAI使用時の正しい設定
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
@@ -29,11 +30,21 @@ export class WeatheringProjectStack extends cdk.Stack {
 
     // CloudFront OAI
     const oai = new cloudfront.OriginAccessIdentity(this, 'OAI');
-    websiteBucket.grantRead(oai);
+    
+    // 👇 明示的なバケットポリシーを追加（重複削除）
+    websiteBucket.addToResourcePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        principals: [oai.grantPrincipal],
+        actions: ['s3:GetObject'],
+        resources: [websiteBucket.arnForObjects('*')],
+      })
+    );
 
     // CloudFront Distribution
     const distribution = new cloudfront.Distribution(this, 'WeatheringDistribution', {
       defaultBehavior: {
+        // 👇 S3Originを使用（バケット設定修正で対応）
         origin: new origins.S3Origin(websiteBucket, {
           originAccessIdentity: oai,
         }),
@@ -47,11 +58,13 @@ export class WeatheringProjectStack extends cdk.Stack {
           httpStatus: 403,
           responseHttpStatus: 200,
           responsePagePath: '/index.html',
+          ttl: cdk.Duration.minutes(5),
         },
         {
           httpStatus: 404,
           responseHttpStatus: 200,
           responsePagePath: '/index.html',
+          ttl: cdk.Duration.minutes(5),
         },
       ],
     });
@@ -369,6 +382,16 @@ export class WeatheringProjectStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'UserPoolClientIdOutput', {
       value: userPoolClient.userPoolClientId,
       description: 'Cognito User Pool Client ID',
+    });
+
+    new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
+      value: distribution.distributionId,
+      description: 'CloudFront Distribution ID',
+    });
+
+    new cdk.CfnOutput(this, 'S3BucketName', {
+      value: websiteBucket.bucketName,
+      description: 'S3 Website Bucket Name',
     });
   }
 }

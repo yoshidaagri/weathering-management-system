@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
   env: {
     AWS_REGION: process.env.AWS_REGION || 'ap-northeast-1',
     COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID,

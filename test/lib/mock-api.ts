@@ -212,6 +212,51 @@ export class MockApiClient {
     };
   }
 
+  async updateProject(projectId: string, project: Partial<Project>): Promise<ApiResponse<Project>> {
+    await this.delay();
+    
+    const index = mockProjects.findIndex(p => p.id === projectId);
+    
+    if (index === -1) {
+      return {
+        success: false,
+        error: 'プロジェクトが見つかりません',
+      };
+    }
+
+    const updatedProject: Project = {
+      ...mockProjects[index],
+      ...project,
+      updatedAt: new Date().toISOString(),
+    };
+
+    mockProjects[index] = updatedProject;
+
+    return {
+      success: true,
+      data: updatedProject,
+    };
+  }
+
+  async deleteProject(projectId: string): Promise<ApiResponse<void>> {
+    await this.delay();
+    
+    const index = mockProjects.findIndex(p => p.id === projectId);
+    
+    if (index === -1) {
+      return {
+        success: false,
+        error: 'プロジェクトが見つかりません',
+      };
+    }
+
+    mockProjects.splice(index, 1);
+
+    return {
+      success: true,
+    };
+  }
+
   // === Measurement API ===
   async getMeasurements(
     projectId: string,
@@ -252,6 +297,21 @@ export class MockApiClient {
     return {
       success: true,
       data: newMeasurement,
+    };
+  }
+
+  async createMeasurementBatch(projectId: string, measurements: Omit<MeasurementData, 'id' | 'projectId'>[]): Promise<ApiResponse<MeasurementData[]>> {
+    await this.delay();
+    
+    const newMeasurements: MeasurementData[] = measurements.map((measurement, index) => ({
+      ...measurement,
+      id: `measurement-${Date.now()}-${index}`,
+      projectId,
+    }));
+
+    return {
+      success: true,
+      data: newMeasurements,
     };
   }
 

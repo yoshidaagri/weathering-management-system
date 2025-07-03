@@ -138,7 +138,7 @@ export class CognitoAuth {
     const response = await this.client.send(command);
     
     const getAttributeValue = (name: string) => {
-      const attr = response.UserAttributes?.find(attr => attr.Name === name);
+      const attr = response.UserAttributes?.find((attr: { Name: string; Value: string }) => attr.Name === name);
       return attr?.Value || '';
     };
 
@@ -146,7 +146,7 @@ export class CognitoAuth {
       username: response.Username || '',
       email: getAttributeValue('email'),
       companyName: getAttributeValue('custom:company_name'),
-      isVerified: response.UserStatus === 'CONFIRMED',
+      isVerified: getAttributeValue('email_verified') === 'true',
     };
   }
 }

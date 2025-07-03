@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useAuthStore } from '@/lib/auth-store';
-import { SignUpData } from '@/lib/cognito';
+import { useAuthStore } from '../lib/auth-store';
+import { SignUpData } from '../lib/cognito';
 
 interface SignUpFormData extends SignUpData {
   confirmPassword: string;
@@ -20,12 +20,18 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
   const [username, setUsername] = useState('');
 
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
+    register: registerSignUp,
+    handleSubmit: handleSubmitSignUp,
+    formState: { errors: errorsSignUp },
     watch,
-    reset,
+    reset: resetSignUp,
   } = useForm<SignUpFormData>();
+
+  const {
+    register: registerConfirm,
+    handleSubmit: handleSubmitConfirm,
+    formState: { errors: errorsConfirm },
+  } = useForm<{ confirmationCode: string }>();
 
   const password = watch('password');
 
@@ -40,7 +46,7 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
       });
       setUsername(data.username);
       setStep('confirm');
-      reset();
+      resetSignUp();
     } catch (error) {
       // エラーはstore内で処理済み
     }
@@ -81,7 +87,7 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmitConfirm)} className="space-y-4">
+          <form onSubmit={handleSubmitConfirm(onSubmitConfirm)} className="space-y-4">
             <div>
               <label htmlFor="confirmationCode" className="block text-sm font-medium text-gray-700 mb-1">
                 確認コード
@@ -89,7 +95,7 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
               <input
                 id="confirmationCode"
                 type="text"
-                {...register('confirmationCode', { 
+                {...registerConfirm('confirmationCode', { 
                   required: '確認コードは必須です',
                   pattern: { value: /^\d{6}$/, message: '確認コードは6桁の数字です' }
                 })}
@@ -97,8 +103,8 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
                 placeholder="123456"
                 disabled={isLoading}
               />
-              {errors.confirmationCode && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmationCode.message}</p>
+              {errorsConfirm.confirmationCode && (
+                <p className="mt-1 text-sm text-red-600">{errorsConfirm.confirmationCode.message}</p>
               )}
             </div>
 
@@ -146,7 +152,7 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmitSignUp)} className="space-y-4">
+        <form onSubmit={handleSubmitSignUp(onSubmitSignUp)} className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
               ユーザー名 *
@@ -154,7 +160,7 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
             <input
               id="username"
               type="text"
-              {...register('username', { 
+              {...registerSignUp('username', { 
                 required: 'ユーザー名は必須です',
                 minLength: { value: 3, message: 'ユーザー名は3文字以上である必要があります' },
                 pattern: { value: /^[a-zA-Z0-9_]+$/, message: 'ユーザー名は半角英数字とアンダースコアのみ使用できます' }
@@ -163,8 +169,8 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
               placeholder="username"
               disabled={isLoading}
             />
-            {errors.username && (
-              <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+            {errorsSignUp.username && (
+              <p className="mt-1 text-sm text-red-600">{errorsSignUp.username.message}</p>
             )}
           </div>
 
@@ -175,7 +181,7 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
             <input
               id="email"
               type="email"
-              {...register('email', { 
+              {...registerSignUp('email', { 
                 required: 'メールアドレスは必須です',
                 pattern: { value: /^\S+@\S+\.\S+$/, message: '有効なメールアドレスを入力してください' }
               })}
@@ -183,8 +189,8 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
               placeholder="example@company.com"
               disabled={isLoading}
             />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            {errorsSignUp.email && (
+              <p className="mt-1 text-sm text-red-600">{errorsSignUp.email.message}</p>
             )}
           </div>
 
@@ -195,7 +201,7 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
             <input
               id="companyName"
               type="text"
-              {...register('companyName')}
+              {...registerSignUp('companyName')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="株式会社○○"
               disabled={isLoading}
@@ -209,7 +215,7 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
             <input
               id="password"
               type="password"
-              {...register('password', { 
+              {...registerSignUp('password', { 
                 required: 'パスワードは必須です',
                 minLength: { value: 8, message: 'パスワードは8文字以上である必要があります' },
                 pattern: { 
@@ -221,8 +227,8 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
               placeholder="パスワードを入力"
               disabled={isLoading}
             />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+            {errorsSignUp.password && (
+              <p className="mt-1 text-sm text-red-600">{errorsSignUp.password.message}</p>
             )}
           </div>
 
@@ -233,16 +239,16 @@ export default function SignUpForm({ onSuccess, onSwitchToLogin }: SignUpFormPro
             <input
               id="confirmPassword"
               type="password"
-              {...register('confirmPassword', { 
+              {...registerSignUp('confirmPassword', { 
                 required: 'パスワード確認は必須です',
-                validate: value => value === password || 'パスワードが一致しません'
+                validate: (value: string) => value === password || 'パスワードが一致しません'
               })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="パスワードを再入力"
               disabled={isLoading}
             />
-            {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+            {errorsSignUp.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600">{errorsSignUp.confirmPassword.message}</p>
             )}
           </div>
 

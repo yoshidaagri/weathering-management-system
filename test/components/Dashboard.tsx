@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthStore } from '@/lib/auth-store';
+import { useAuthStore } from '../lib/auth-store';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MonitoringDashboard from './MonitoringDashboard';

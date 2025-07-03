@@ -5,6 +5,12 @@ export { useMeasurementStore } from './measurement-store';
 export { useUIStore, useNotifications } from './ui-store';
 export type { DashboardView, Theme } from './ui-store';
 
+// Import stores for combined hook
+import { useAuthStore } from '../auth-store';
+import { useProjectStore } from './project-store';
+import { useMeasurementStore } from './measurement-store';
+import { useUIStore, useNotifications } from './ui-store';
+
 // Combined store hooks for common patterns
 export const useAppState = () => {
   const auth = useAuthStore();

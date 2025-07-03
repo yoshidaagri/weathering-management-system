@@ -71,3 +71,11 @@ jest-coverage/
 # Local development
 .local/
 server.log
+
+# AWS Installers and temporary files
+*.msi
+*.zip
+test.html
+
+# Windows setup files
+WINDOWS_SETUP.md

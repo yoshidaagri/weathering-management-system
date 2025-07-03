@@ -55,11 +55,17 @@ export const useAuthStore = create<AuthState>()(
           if (useMock) {
             // モック認証
             response = await mockAuth.signIn(credentials);
+            if (!response.AuthenticationResult) {
+              throw new Error('認証に失敗しました');
+            }
             user = await mockAuth.getCurrentUser(response.AuthenticationResult.AccessToken);
           } else {
             // 実際のCognito認証
             const cognitoAuth = getCognitoAuth();
             response = await cognitoAuth.signIn(credentials);
+            if (!response.AuthenticationResult) {
+              throw new Error('認証に失敗しました');
+            }
             user = await cognitoAuth.getCurrentUser(response.AuthenticationResult.AccessToken!);
           }
           

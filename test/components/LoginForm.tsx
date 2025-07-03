@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useAuthStore } from '@/lib/auth-store';
-import { LoginCredentials } from '@/lib/cognito';
+import { useAuthStore } from '../lib/auth-store';
+import { LoginCredentials } from '../lib/cognito';
 
 interface LoginFormProps {
   onSuccess?: () => void;
