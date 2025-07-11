@@ -40,10 +40,15 @@ export const useProjectStore = create<ProjectState>()(
         
         try {
           const client = useMockApi ? mockApiClient : apiClient;
-          const response = await client.getProjects(customerId);
+          const response = await client.getProjects(
+            customerId ? { customerId } : {}
+          );
           
           if (response.success && response.data) {
-            set({ projects: response.data.items, isLoading: false });
+            const projects = 'projects' in response.data 
+              ? response.data.projects 
+              : [];
+            set({ projects, isLoading: false });
           } else {
             set({ error: response.error || 'プロジェクトの取得に失敗しました', isLoading: false });
           }
@@ -63,15 +68,16 @@ export const useProjectStore = create<ProjectState>()(
           const response = await client.getProject(projectId);
           
           if (response.success && response.data) {
-            set({ currentProject: response.data, isLoading: false });
+            const project = 'project' in response.data ? response.data.project : response.data;
+            set({ currentProject: project, isLoading: false });
             
             // プロジェクト一覧も更新
             const { projects } = get();
             const updatedProjects = projects.map(p => 
-              p.id === projectId ? response.data! : p
+              p.id === projectId ? project : p
             );
             if (!projects.find(p => p.id === projectId)) {
-              updatedProjects.push(response.data);
+              updatedProjects.push(project);
             }
             set({ projects: updatedProjects });
           } else {
@@ -93,12 +99,13 @@ export const useProjectStore = create<ProjectState>()(
           const response = await client.createProject(project);
           
           if (response.success && response.data) {
+            const newProject = 'project' in response.data ? response.data.project : response.data;
             const { projects } = get();
             set({ 
-              projects: [...projects, response.data],
+              projects: [...projects, newProject],
               isLoading: false 
             });
-            return response.data;
+            return newProject;
           } else {
             set({ error: response.error || 'プロジェクトの作成に失敗しました', isLoading: false });
             return null;
@@ -120,14 +127,15 @@ export const useProjectStore = create<ProjectState>()(
           const response = await client.updateProject(projectId, updates);
           
           if (response.success && response.data) {
+            const updatedProject = 'project' in response.data ? response.data.project : response.data;
             const { projects, currentProject } = get();
             const updatedProjects = projects.map(p => 
-              p.id === projectId ? response.data! : p
+              p.id === projectId ? updatedProject : p
             );
             
             set({ 
               projects: updatedProjects,
-              currentProject: currentProject?.id === projectId ? response.data : currentProject,
+              currentProject: currentProject?.id === projectId ? updatedProject : currentProject,
               isLoading: false 
             });
           } else {

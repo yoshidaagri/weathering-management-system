@@ -1,0 +1,198 @@
+name: Quality Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 毎日午前2時（UTC）に実行
+    - cron: '0 2 * * *'
+
+env:
+  NODE_VERSION: '18.x'
+
+jobs:
+  code-quality:
+    name: コード品質チェック
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: test/package-lock.json
+
+    - name: 依存関係インストール
+      working-directory: ./test
+      run: npm ci
+
+    - name: TypeScript厳密チェック
+      working-directory: ./test
+      run: npx tsc --noEmit --strict
+
+    - name: ESLint詳細チェック
+      working-directory: ./test
+      run: npm run lint -- --max-warnings 0
+
+    - name: Prettier フォーマットチェック
+      working-directory: ./test
+      run: npx prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
+
+    - name: Bundle Analyzer
+      working-directory: ./test
+      run: |
+        npm run build
+        npx @next/bundle-analyzer
+
+  accessibility-check:
+    name: アクセシビリティチェック
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: test/package-lock.json
+
+    - name: 依存関係インストール
+      working-directory: ./test
+      run: npm ci
+
+    - name: フロントエンドビルド
+      working-directory: ./test
+      run: npm run build
+
+    - name: Lighthouseアクセシビリティテスト
+      uses: treosh/lighthouse-ci-action@v10
+      with:
+        uploadArtifacts: true
+        temporaryPublicStorage: true
+        configPath: './test/lighthouse.config.js'
+
+  performance-test:
+    name: パフォーマンステスト
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: test/package-lock.json
+
+    - name: 依存関係インストール
+      working-directory: ./test
+      run: npm ci
+
+    - name: Playwright ブラウザインストール
+      working-directory: ./test
+      run: npx playwright install chromium
+
+    - name: フロントエンドビルド
+      working-directory: ./test
+      run: npm run build
+
+    - name: パフォーマンステスト実行
+      working-directory: ./test
+      run: npx playwright test --project=chromium performance/
+
+    - name: パフォーマンスレポートアップロード
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-report
+        path: test/test-results/
+        retention-days: 7
+
+  dependency-check:
+    name: 依存関係チェック
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: フロントエンド依存関係チェック
+      working-directory: ./test
+      run: |
+        npm audit --audit-level moderate
+        npx depcheck
+        npx npm-check-updates --errorLevel 2
+
+    - name: インフラ依存関係チェック
+      working-directory: ./infrastructure
+      run: |
+        npm ci
+        npm audit --audit-level moderate
+        npx depcheck
+
+  license-check:
+    name: ライセンスチェック
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: ライセンスチェック
+      working-directory: ./test
+      run: |
+        npm ci
+        npx license-checker --summary --excludePrivatePackages
+
+  docker-security:
+    name: Docker セキュリティスキャン
+    runs-on: ubuntu-latest
+    if: false  # Docker使用時のみ有効化
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Docker Buildx セットアップ
+      uses: docker/setup-buildx-action@v3
+
+    - name: Dockerイメージビルド
+      uses: docker/build-push-action@v5
+      with:
+        context: ./test
+        push: false
+        tags: weathering-app:test
+
+    - name: Trivy脆弱性スキャン
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'weathering-app:test'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: セキュリティレポートアップロード
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+# TODO: Cursor - 受入テスト実施 - 品質チェックワークフローの動作確認 

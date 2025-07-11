@@ -39,12 +39,16 @@ export interface MeasurementData {
 }
 
 export interface Customer {
-  id: string;
+  customerId: string;
   companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  address: string;
+  contactInfo: {
+    email: string;
+    phone: string;
+    address: string;
+  };
+  industry: string;
+  projectCount: number;
+  status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
 }
@@ -61,7 +65,7 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.API_GATEWAY_URL || 'https://api.example.com';
+    this.baseUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'https://3jng8xwirl.execute-api.ap-northeast-1.amazonaws.com/prod';
   }
 
   private async request<T>(
@@ -140,120 +144,165 @@ class ApiClient {
   }
 
   // === Customer API ===
-  async getCustomers(page: number = 1, pageSize: number = 20): Promise<ApiResponse<PaginatedResponse<Customer>>> {
-    return this.get<PaginatedResponse<Customer>>(`/customers?page=${page}&pageSize=${pageSize}`);
+  async getCustomers(
+    params: {
+      limit?: number;
+      nextToken?: string;
+      search?: string;
+      industry?: string;
+      status?: 'active' | 'inactive';
+    } = {}
+  ): Promise<ApiResponse<{ customers: Customer[]; pagination: any }>> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, value.toString());
+      }
+    });
+    
+    const queryString = searchParams.toString();
+    return this.get<{ customers: Customer[]; pagination: any }>(
+      `/api/customers${queryString ? `?${queryString}` : ''}`
+    );
   }
 
-  async getCustomer(customerId: string): Promise<ApiResponse<Customer>> {
-    return this.get<Customer>(`/customers/${customerId}`);
+  async getCustomer(customerId: string): Promise<ApiResponse<{ customer: Customer }>> {
+    return this.get<{ customer: Customer }>(`/api/customers/${customerId}`);
   }
 
-  async createCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<Customer>> {
-    return this.post<Customer>('/customers', customer);
+  async createCustomer(customerData: Omit<Customer, 'customerId' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<{ customer: Customer }>> {
+    return this.post<{ customer: Customer }>('/api/customers', customerData);
   }
 
-  async updateCustomer(customerId: string, customer: Partial<Customer>): Promise<ApiResponse<Customer>> {
-    return this.put<Customer>(`/customers/${customerId}`, customer);
+  async updateCustomer(customerId: string, customerData: Partial<Customer>): Promise<ApiResponse<{ customer: Customer }>> {
+    return this.put<{ customer: Customer }>(`/api/customers/${customerId}`, customerData);
   }
 
   async deleteCustomer(customerId: string): Promise<ApiResponse<void>> {
-    return this.delete<void>(`/customers/${customerId}`);
+    return this.delete<void>(`/api/customers/${customerId}`);
   }
 
   // === Project API ===
-  async getProjects(customerId?: string, page: number = 1, pageSize: number = 20): Promise<ApiResponse<PaginatedResponse<Project>>> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      pageSize: pageSize.toString(),
+  async getProjects(
+    params: {
+      limit?: number;
+      nextToken?: string;
+      customerId?: string;
+      status?: 'planning' | 'active' | 'completed' | 'cancelled';
+      search?: string;
+    } = {}
+  ): Promise<ApiResponse<{ projects: Project[]; pagination: any }>> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, value.toString());
+      }
     });
     
-    if (customerId) {
-      params.append('customerId', customerId);
-    }
-
-    return this.get<PaginatedResponse<Project>>(`/projects?${params.toString()}`);
+    const queryString = searchParams.toString();
+    return this.get<{ projects: Project[]; pagination: any }>(
+      `/api/projects${queryString ? `?${queryString}` : ''}`
+    );
   }
 
-  async getProject(projectId: string): Promise<ApiResponse<Project>> {
-    return this.get<Project>(`/projects/${projectId}`);
+  async getProject(projectId: string): Promise<ApiResponse<{ project: Project }>> {
+    return this.get<{ project: Project }>(`/api/projects/${projectId}`);
   }
 
-  async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'co2Achieved'>): Promise<ApiResponse<Project>> {
-    return this.post<Project>('/projects', project);
+  async createProject(projectData: any): Promise<ApiResponse<{ project: Project }>> {
+    return this.post<{ project: Project }>('/api/projects', projectData);
   }
 
-  async updateProject(projectId: string, project: Partial<Project>): Promise<ApiResponse<Project>> {
-    return this.put<Project>(`/projects/${projectId}`, project);
+  async updateProject(projectId: string, projectData: Partial<Project>): Promise<ApiResponse<{ project: Project }>> {
+    return this.put<{ project: Project }>(`/api/projects/${projectId}`, projectData);
   }
 
   async deleteProject(projectId: string): Promise<ApiResponse<void>> {
-    return this.delete<void>(`/projects/${projectId}`);
+    return this.delete<void>(`/api/projects/${projectId}`);
   }
 
   // === Measurement API ===
   async getMeasurements(
     projectId: string,
-    startDate?: string,
-    endDate?: string,
-    page: number = 1,
-    pageSize: number = 100
-  ): Promise<ApiResponse<PaginatedResponse<MeasurementData>>> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      pageSize: pageSize.toString(),
+    params: {
+      limit?: number;
+      nextToken?: string;
+      startDate?: string;
+      endDate?: string;
+      type?: 'water_quality' | 'atmospheric' | 'soil';
+      alertsOnly?: boolean;
+    } = {}
+  ): Promise<ApiResponse<{ measurements: MeasurementData[]; pagination: any; summary: any }>> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, value.toString());
+      }
     });
-
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-
-    return this.get<PaginatedResponse<MeasurementData>>(`/projects/${projectId}/measurements?${params.toString()}`);
+    
+    const queryString = searchParams.toString();
+    return this.get<{ measurements: MeasurementData[]; pagination: any; summary: any }>(
+      `/api/projects/${projectId}/measurements${queryString ? `?${queryString}` : ''}`
+    );
   }
 
-  async getMeasurement(projectId: string, measurementId: string): Promise<ApiResponse<MeasurementData>> {
-    return this.get<MeasurementData>(`/projects/${projectId}/measurements/${measurementId}`);
+  async getMeasurement(projectId: string, measurementId: string): Promise<ApiResponse<{ measurement: MeasurementData }>> {
+    return this.get<{ measurement: MeasurementData }>(`/api/projects/${projectId}/measurements/${measurementId}`);
   }
 
-  async createMeasurement(projectId: string, measurement: Omit<MeasurementData, 'id' | 'projectId'>): Promise<ApiResponse<MeasurementData>> {
-    return this.post<MeasurementData>(`/projects/${projectId}/measurements`, measurement);
+  async createMeasurement(projectId: string, measurementData: any): Promise<ApiResponse<{ measurement: MeasurementData }>> {
+    return this.post<{ measurement: MeasurementData }>(`/api/projects/${projectId}/measurements`, measurementData);
   }
 
-  async createMeasurementBatch(projectId: string, measurements: Omit<MeasurementData, 'id' | 'projectId'>[]): Promise<ApiResponse<MeasurementData[]>> {
-    return this.post<MeasurementData[]>(`/projects/${projectId}/measurements/batch`, { measurements });
+  async createMeasurementBatch(projectId: string, measurementsData: { measurements: any[] }): Promise<ApiResponse<any>> {
+    return this.post<any>(`/api/projects/${projectId}/measurements/batch`, measurementsData);
+  }
+
+  async updateMeasurement(projectId: string, measurementId: string, measurementData: any): Promise<ApiResponse<{ measurement: MeasurementData }>> {
+    return this.put<{ measurement: MeasurementData }>(`/api/projects/${projectId}/measurements/${measurementId}`, measurementData);
+  }
+
+  async deleteMeasurement(projectId: string, measurementId: string): Promise<ApiResponse<void>> {
+    return this.delete<void>(`/api/projects/${projectId}/measurements/${measurementId}`);
   }
 
   // === Report API ===
-  async generateReport(
+  async getReports(
     projectId: string,
-    reportType: 'monthly' | 'quarterly' | 'annual' | 'custom',
-    options: {
-      startDate: string;
-      endDate: string;
-      includeItems: string[];
-      format: 'pdf' | 'excel' | 'csv';
-    }
-  ): Promise<ApiResponse<{ reportId: string }>> {
-    return this.post<{ reportId: string }>(`/projects/${projectId}/reports/generate`, {
-      reportType,
-      ...options,
+    params: {
+      limit?: number;
+      nextToken?: string;
+      type?: 'mrv' | 'environmental' | 'performance' | 'compliance';
+      status?: 'pending' | 'processing' | 'completed' | 'failed';
+    } = {}
+  ): Promise<ApiResponse<{ reports: any[]; pagination: any; summary: any }>> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, value.toString());
+      }
     });
-  }
-
-  async getReports(projectId: string): Promise<ApiResponse<any[]>> {
-    return this.get<any[]>(`/projects/${projectId}/reports`);
-  }
-
-  async getReport(projectId: string, reportId: string): Promise<ApiResponse<any>> {
-    return this.get<any>(`/projects/${projectId}/reports/${reportId}`);
-  }
-
-  async downloadReport(projectId: string, reportId: string): Promise<Response> {
-    const { tokens } = useAuthStore.getState();
     
-    return fetch(`${this.baseUrl}/projects/${projectId}/reports/${reportId}/download`, {
-      headers: {
-        'Authorization': `Bearer ${tokens?.accessToken}`,
-      },
-    });
+    const queryString = searchParams.toString();
+    return this.get<{ reports: any[]; pagination: any; summary: any }>(
+      `/api/projects/${projectId}/reports${queryString ? `?${queryString}` : ''}`
+    );
+  }
+
+  async getReport(projectId: string, reportId: string): Promise<ApiResponse<{ report: any }>> {
+    return this.get<{ report: any }>(`/api/projects/${projectId}/reports/${reportId}`);
+  }
+
+  async generateReport(projectId: string, reportData: any): Promise<ApiResponse<{ report: any }>> {
+    return this.post<{ report: any }>(`/api/projects/${projectId}/reports`, reportData);
+  }
+
+  async deleteReport(projectId: string, reportId: string): Promise<ApiResponse<void>> {
+    return this.delete<void>(`/api/projects/${projectId}/reports/${reportId}`);
+  }
+
+  async downloadReport(projectId: string, reportId: string): Promise<ApiResponse<{ downloadUrl: string; filename: string; fileSize: number }>> {
+    return this.get<{ downloadUrl: string; filename: string; fileSize: number }>(`/api/projects/${projectId}/reports/${reportId}/download`);
   }
 
   // === Analytics API ===
@@ -261,7 +310,7 @@ class ApiClient {
     projectId: string,
     period: '7d' | '30d' | '90d' | '1y' = '30d'
   ): Promise<ApiResponse<any>> {
-    return this.get<any>(`/projects/${projectId}/analytics?period=${period}`);
+    return this.get<any>(`/api/projects/${projectId}/analytics?period=${period}`);
   }
 
   async getSystemHealth(): Promise<ApiResponse<{
@@ -273,7 +322,7 @@ class ApiClient {
     }>;
     lastChecked: string;
   }>> {
-    return this.get<any>('/health');
+    return this.get<any>('/api/health');
   }
 }
 

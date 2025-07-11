@@ -1,5 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
+import AppLayoutProvider from '../components/AppLayoutProvider'
 
 export const metadata: Metadata = {
   title: '風化促進CO2除去・廃水処理システム',
@@ -13,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <AppLayoutProvider>
+          {children}
+        </AppLayoutProvider>
+      </body>
     </html>
   )
 }

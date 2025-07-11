@@ -1,0 +1,280 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18.x'
+
+jobs:
+  test:
+    name: テスト実行
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js ${{ matrix.node-version }} セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: test/package-lock.json
+
+    - name: 依存関係インストール
+      working-directory: ./test
+      run: npm ci
+
+    - name: ESLintチェック
+      working-directory: ./test
+      run: npm run lint
+
+    - name: TypeScriptコンパイル
+      working-directory: ./test
+      run: npx tsc --noEmit
+
+    - name: 単体テスト実行
+      working-directory: ./test
+      run: npm test -- --coverage --watchAll=false
+
+    - name: テストカバレッジアップロード
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./test/coverage/lcov.info
+        fail_ci_if_error: true
+
+  integration-test:
+    name: 統合テスト
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: test/package-lock.json
+
+    - name: 依存関係インストール
+      working-directory: ./test
+      run: npm ci
+
+    - name: AWS CDK インフラデプロイ（テスト環境）
+      working-directory: ./infrastructure
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ap-northeast-1
+      run: |
+        npm ci
+        npx cdk deploy --require-approval never --context stage=test
+
+    - name: 統合テスト実行
+      working-directory: ./test
+      env:
+        NODE_ENV: test
+        NEXT_PUBLIC_AWS_REGION: ap-northeast-1
+        NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.TEST_COGNITO_USER_POOL_ID }}
+        NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.TEST_COGNITO_CLIENT_ID }}
+        NEXT_PUBLIC_API_BASE_URL: ${{ secrets.TEST_API_BASE_URL }}
+      run: npm test -- --testPathPattern=integration
+
+  e2e-test:
+    name: E2Eテスト
+    runs-on: ubuntu-latest
+    needs: integration-test
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: test/package-lock.json
+
+    - name: 依存関係インストール
+      working-directory: ./test
+      run: npm ci
+
+    - name: Playwright ブラウザインストール
+      working-directory: ./test
+      run: npx playwright install --with-deps
+
+    - name: フロントエンドビルド
+      working-directory: ./test
+      env:
+        NODE_ENV: test
+        NEXT_PUBLIC_AWS_REGION: ap-northeast-1
+        NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.TEST_COGNITO_USER_POOL_ID }}
+        NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.TEST_COGNITO_CLIENT_ID }}
+        NEXT_PUBLIC_API_BASE_URL: ${{ secrets.TEST_API_BASE_URL }}
+      run: npm run build
+
+    - name: E2Eテスト実行
+      working-directory: ./test
+      env:
+        PLAYWRIGHT_BASE_URL: http://localhost:3000
+        E2E_TEST_USERNAME: ${{ secrets.E2E_TEST_USERNAME }}
+        E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+      run: npm run test:e2e
+
+    - name: テスト結果アップロード
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: test/playwright-report/
+        retention-days: 30
+
+  security-scan:
+    name: セキュリティスキャン
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: セキュリティ脆弱性スキャン
+      working-directory: ./test
+      run: npm audit --audit-level high
+
+    - name: Lambda関数セキュリティチェック
+      working-directory: ./infrastructure
+      run: |
+        npm ci
+        npm audit --audit-level high
+
+  deploy-staging:
+    name: ステージング環境デプロイ
+    runs-on: ubuntu-latest
+    needs: [test, integration-test, e2e-test, security-scan]
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: test/package-lock.json
+
+    - name: 依存関係インストール
+      working-directory: ./test
+      run: npm ci
+
+    - name: フロントエンドビルド（ステージング）
+      working-directory: ./test
+      env:
+        NODE_ENV: staging
+        NEXT_PUBLIC_AWS_REGION: ap-northeast-1
+        NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.STAGING_COGNITO_USER_POOL_ID }}
+        NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.STAGING_COGNITO_CLIENT_ID }}
+        NEXT_PUBLIC_API_BASE_URL: ${{ secrets.STAGING_API_BASE_URL }}
+      run: npm run build
+
+    - name: AWS認証設定
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: CDKインフラデプロイ（ステージング）
+      working-directory: ./infrastructure
+      run: |
+        npm ci
+        npx cdk deploy --require-approval never --context stage=staging
+
+    - name: S3静的サイトデプロイ
+      working-directory: ./test
+      run: aws s3 sync out/ s3://${{ secrets.STAGING_S3_BUCKET }} --delete
+
+    - name: CloudFrontキャッシュ無効化
+      run: |
+        aws cloudfront create-invalidation \
+          --distribution-id ${{ secrets.STAGING_CLOUDFRONT_ID }} \
+          --paths "/*"
+
+  deploy-production:
+    name: 本番環境デプロイ
+    runs-on: ubuntu-latest
+    needs: [test, integration-test, e2e-test, security-scan]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: コードチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js セットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: test/package-lock.json
+
+    - name: 依存関係インストール
+      working-directory: ./test
+      run: npm ci
+
+    - name: フロントエンドビルド（本番）
+      working-directory: ./test
+      env:
+        NODE_ENV: production
+        NEXT_PUBLIC_AWS_REGION: ap-northeast-1
+        NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.PROD_COGNITO_USER_POOL_ID }}
+        NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.PROD_COGNITO_CLIENT_ID }}
+        NEXT_PUBLIC_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+      run: npm run build
+
+    - name: AWS認証設定
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: CDKインフラデプロイ（本番）
+      working-directory: ./infrastructure
+      run: |
+        npm ci
+        npx cdk deploy --require-approval never --context stage=production
+
+    - name: S3静的サイトデプロイ
+      working-directory: ./test
+      run: aws s3 sync out/ s3://weathering-project-frontend-788026075178 --delete
+
+    - name: CloudFrontキャッシュ無効化
+      run: |
+        aws cloudfront create-invalidation \
+          --distribution-id ERCBD6UW7KRBP \
+          --paths "/*"
+
+    - name: デプロイ通知
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      if: always()
+
+# TODO: Cursor - 受入テスト実施 - GitHub Actions環境での実行確認 

@@ -272,6 +272,8 @@ src/
 - S3アップロード後、HTMLファイルが正しく配置されていることを確認
 - JSONファイルばかりの場合は間違いなので即座に修正
 
+#### デプロイ後の動作確認URL（CloudFront）
+https://dikwcz6haxnrb.cloudfront.net
 #### トラブルシューティング
 - 「JSONファイルばかり」→ `.next`を誤ってアップロードした証拠
 - 「404エラー」→ `index.html`が正しい場所にない

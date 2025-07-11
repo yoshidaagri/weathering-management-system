@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getCognitoAuth, User, LoginCredentials, SignUpData } from './cognito';
+import { getAuthService, refreshTokens, User, LoginCredentials, SignUpData, AuthTokens } from './services/auth-service';
 import { mockAuth } from './mock-auth';
 
-export interface AuthTokens {
+export interface AuthTokensWithExpiry {
   accessToken: string;
   idToken: string;
   refreshToken: string;
@@ -13,7 +13,7 @@ export interface AuthTokens {
 interface AuthState {
   // State
   user: User | null;
-  tokens: AuthTokens | null;
+  tokens: AuthTokensWithExpiry | null;
   isLoading: boolean;
   error: string | null;
   
@@ -33,6 +33,20 @@ interface AuthState {
   isTokenExpired: () => boolean;
 }
 
+// Cookie管理ユーティリティ
+const setCookie = (name: string, value: string, expiresAt: number) => {
+  if (typeof document === 'undefined') return; // サーバーサイドでは実行しない
+  
+  const expires = new Date(expiresAt).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; secure; samesite=strict`;
+};
+
+const removeCookie = (name: string) => {
+  if (typeof document === 'undefined') return; // サーバーサイドでは実行しない
+  
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -48,39 +62,42 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           // 開発環境ではモック認証を使用
-          const useMock = process.env.NODE_ENV === 'development' || !process.env.COGNITO_USER_POOL_ID;
+          const useMock = process.env.NODE_ENV === 'development' || !process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID;
           
-          let response, user;
+          let tokens: AuthTokens, user: User;
           
           if (useMock) {
             // モック認証
-            response = await mockAuth.signIn(credentials);
+            const response = await mockAuth.signIn(credentials);
             if (!response.AuthenticationResult) {
               throw new Error('認証に失敗しました');
             }
-            user = await mockAuth.getCurrentUser(response.AuthenticationResult.AccessToken);
-          } else {
-            // 実際のCognito認証
-            const cognitoAuth = getCognitoAuth();
-            response = await cognitoAuth.signIn(credentials);
-            if (!response.AuthenticationResult) {
-              throw new Error('認証に失敗しました');
-            }
-            user = await cognitoAuth.getCurrentUser(response.AuthenticationResult.AccessToken!);
-          }
-          
-          if (response.AuthenticationResult) {
-            const tokens: AuthTokens = {
+            tokens = {
               accessToken: response.AuthenticationResult.AccessToken!,
               idToken: response.AuthenticationResult.IdToken!,
               refreshToken: response.AuthenticationResult.RefreshToken!,
-              expiresAt: Date.now() + (response.AuthenticationResult.ExpiresIn! * 1000),
             };
-
-            set({ tokens, user, isLoading: false });
+            user = await mockAuth.getCurrentUser(response.AuthenticationResult.AccessToken);
           } else {
-            throw new Error('認証に失敗しました');
+            // 実際のCognito認証
+            const authService = getAuthService();
+            tokens = await authService.signIn(credentials);
+            user = await authService.getCurrentUser();
           }
+          
+          const tokensWithExpiry: AuthTokensWithExpiry = {
+            ...tokens,
+            expiresAt: Date.now() + (3600 * 1000), // 1時間後
+          };
+
+          // Cookieに認証情報を保存（middleware用）
+          setCookie('auth-session', JSON.stringify({
+            accessToken: tokensWithExpiry.accessToken,
+            idToken: tokensWithExpiry.idToken,
+            expiresAt: tokensWithExpiry.expiresAt,
+          }), tokensWithExpiry.expiresAt);
+
+          set({ tokens: tokensWithExpiry, user, isLoading: false });
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : '予期しないエラーが発生しました',
@@ -94,13 +111,13 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const useMock = process.env.NODE_ENV === 'development' || !process.env.COGNITO_USER_POOL_ID;
+          const useMock = process.env.NODE_ENV === 'development' || !process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID;
           
           if (useMock) {
             await mockAuth.signUp(data);
           } else {
-            const cognitoAuth = getCognitoAuth();
-            await cognitoAuth.signUp(data);
+            const authService = getAuthService();
+            await authService.signUp(data);
           }
           set({ isLoading: false });
         } catch (error) {
@@ -116,8 +133,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const cognitoAuth = getCognitoAuth();
-          await cognitoAuth.confirmSignUp(username, code);
+          const authService = getAuthService();
+          await authService.confirmSignUp(username, code);
           set({ isLoading: false });
         } catch (error) {
           set({ 
@@ -128,7 +145,13 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      signOut: () => {
+      signOut: async () => {
+        const authService = getAuthService();
+        await authService.signOut();
+        
+        // Cookieから認証情報を削除
+        removeCookie('auth-session');
+        
         set({ user: null, tokens: null, error: null });
       },
 
@@ -136,8 +159,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const cognitoAuth = getCognitoAuth();
-          await cognitoAuth.forgotPassword(username);
+          const authService = getAuthService();
+          await authService.forgotPassword(username);
           set({ isLoading: false });
         } catch (error) {
           set({ 
@@ -152,8 +175,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const cognitoAuth = getCognitoAuth();
-          await cognitoAuth.confirmForgotPassword(username, code, newPassword);
+          const authService = getAuthService();
+          await authService.confirmForgotPassword(username, code, newPassword);
           set({ isLoading: false });
         } catch (error) {
           set({ 
@@ -168,8 +191,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const cognitoAuth = getCognitoAuth();
-          await cognitoAuth.resendConfirmationCode(username);
+          const authService = getAuthService();
+          await authService.resendConfirmationCode(username);
           set({ isLoading: false });
         } catch (error) {
           set({ 
@@ -182,32 +205,61 @@ export const useAuthStore = create<AuthState>()(
 
       refreshAuth: async () => {
         const { tokens } = get();
-        if (!tokens || !tokens.refreshToken) return;
+        if (!tokens || !tokens.refreshToken) {
+          console.log('No refresh token available');
+          return;
+        }
 
         set({ isLoading: true });
         
         try {
-          // TODO: リフレッシュトークンを使って新しいアクセストークンを取得
-          // 現在はシンプルな実装のため、ログアウトして再ログインを促す
-          set({ user: null, tokens: null, isLoading: false });
+          // 開発環境ではモック認証を使用
+          const useMock = process.env.NODE_ENV === 'development' || !process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID;
+          
+          if (useMock) {
+            // モック環境では単純にログアウト
+            console.log('Mock environment: logging out instead of refreshing');
+            removeCookie('auth-session');
+            set({ user: null, tokens: null, isLoading: false });
+            return;
+          }
+
+          // 実際のCognitoでリフレッシュ
+          console.log('Refreshing tokens...');
+          const newTokens = await refreshTokens(tokens.refreshToken);
+          
+          const tokensWithExpiry: AuthTokensWithExpiry = {
+            ...newTokens,
+            expiresAt: Date.now() + (3600 * 1000), // 1時間後
+          };
+
+          // Cookieを更新
+          setCookie('auth-session', JSON.stringify({
+            accessToken: tokensWithExpiry.accessToken,
+            idToken: tokensWithExpiry.idToken,
+            expiresAt: tokensWithExpiry.expiresAt,
+          }), tokensWithExpiry.expiresAt);
+
+          set({ tokens: tokensWithExpiry, isLoading: false });
+          console.log('Tokens refreshed successfully');
         } catch (error) {
+          console.error('Token refresh failed:', error);
           set({ 
             error: error instanceof Error ? error.message : 'トークン更新に失敗しました',
             isLoading: false,
             user: null,
             tokens: null
           });
+          removeCookie('auth-session');
         }
       },
 
-      clearError: () => {
-        set({ error: null });
-      },
+      clearError: () => set({ error: null }),
 
       // Getters
       isAuthenticated: () => {
         const { tokens } = get();
-        return tokens !== null && !get().isTokenExpired();
+        return !!(tokens && !get().isTokenExpired());
       },
 
       isTokenExpired: () => {
@@ -218,9 +270,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        tokens: state.tokens,
+      partialize: (state) => ({ 
+        user: state.user, 
+        tokens: state.tokens 
       }),
     }
   )

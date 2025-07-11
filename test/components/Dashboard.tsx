@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '../lib/auth-store';
+import { DashboardView } from '../lib/stores/ui-store';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MonitoringDashboard from './MonitoringDashboard';
 import ProjectManagement from './ProjectManagement';
 import PlanActualAnalysis from './PlanActualAnalysis';
 import ReportGeneration from './ReportGeneration';
-
-type DashboardView = 'monitoring' | 'projects' | 'analysis' | 'reports';
 
 export default function Dashboard() {
   const [currentView, setCurrentView] = useState<DashboardView>('monitoring');

@@ -3,7 +3,9 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(npx next dev:*)",
-      "Bash(ss:*)"
+      "Bash(ss:*)",
+      "Bash(npm run build:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

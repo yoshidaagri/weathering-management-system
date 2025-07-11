@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type DashboardView = 'monitoring' | 'projects' | 'analysis' | 'reports';
+export type DashboardView = 'monitoring' | 'projects' | 'customers' | 'analysis' | 'reports';
 export type Theme = 'light' | 'dark';
 
 interface Notification {

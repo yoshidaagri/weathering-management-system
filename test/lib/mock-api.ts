@@ -4,22 +4,30 @@ import { Project, MeasurementData, Customer, PaginatedResponse, ApiResponse } fr
 // モックデータ
 const mockCustomers: Customer[] = [
   {
-    id: 'customer-1',
+    customerId: 'customer-1',
     companyName: '北海道鉱業株式会社',
-    contactName: '田中太郎',
-    email: 'tanaka@hokkaido-mining.co.jp',
-    phone: '011-123-4567',
-    address: '北海道札幌市中央区...',
+    contactInfo: {
+      email: 'tanaka@hokkaido-mining.co.jp',
+      phone: '011-123-4567',
+      address: '北海道札幌市中央区...',
+    },
+    industry: '鉱業',
+    projectCount: 2,
+    status: 'active',
     createdAt: '2024-01-15T09:00:00Z',
     updatedAt: '2024-06-01T10:30:00Z',
   },
   {
-    id: 'customer-2',
+    customerId: 'customer-2',
     companyName: '東北資源開発',
-    contactName: '佐藤花子',
-    email: 'sato@tohoku-shigen.com',
-    phone: '022-987-6543',
-    address: '宮城県仙台市青葉区...',
+    contactInfo: {
+      email: 'sato@tohoku-shigen.com',
+      phone: '022-987-6543',
+      address: '宮城県仙台市青葉区...',
+    },
+    industry: '鉱業',
+    projectCount: 1,
+    status: 'active',
     createdAt: '2024-02-01T14:20:00Z',
     updatedAt: '2024-05-15T16:45:00Z',
   },
@@ -128,7 +136,7 @@ export class MockApiClient {
 
   async getCustomer(customerId: string): Promise<ApiResponse<Customer>> {
     await this.delay();
-    const customer = mockCustomers.find(c => c.id === customerId);
+    const customer = mockCustomers.find(c => c.customerId === customerId);
     
     if (!customer) {
       return {
@@ -143,12 +151,12 @@ export class MockApiClient {
     };
   }
 
-  async createCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<Customer>> {
+  async createCustomer(customer: Omit<Customer, 'customerId' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<Customer>> {
     await this.delay();
     
     const newCustomer: Customer = {
       ...customer,
-      id: `customer-${Date.now()}`,
+      customerId: `customer-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -162,21 +170,49 @@ export class MockApiClient {
   }
 
   // === Project API ===
-  async getProjects(customerId?: string, page: number = 1, pageSize: number = 20): Promise<ApiResponse<PaginatedResponse<Project>>> {
+  async getProjects(
+    params: {
+      limit?: number;
+      nextToken?: string;
+      customerId?: string;
+      status?: 'planning' | 'active' | 'completed' | 'cancelled';
+      search?: string;
+    } = {}
+  ): Promise<ApiResponse<{ projects: Project[]; pagination: any }>> {
     await this.delay();
     
     let filteredProjects = mockProjects;
-    if (customerId) {
-      filteredProjects = mockProjects.filter(p => p.customerId === customerId);
+    if (params.customerId) {
+      filteredProjects = mockProjects.filter(p => p.customerId === params.customerId);
     }
+    if (params.status) {
+      filteredProjects = filteredProjects.filter(p => p.status === params.status);
+    }
+    if (params.search) {
+      filteredProjects = filteredProjects.filter(p => 
+        p.name.toLowerCase().includes(params.search!.toLowerCase()) ||
+        p.location.toLowerCase().includes(params.search!.toLowerCase())
+      );
+    }
+
+    const limit = params.limit || 20;
+    const paginatedData = this.paginate(filteredProjects, 1, limit);
 
     return {
       success: true,
-      data: this.paginate(filteredProjects, page, pageSize),
+      data: {
+        projects: paginatedData.items,
+        pagination: {
+          total: paginatedData.total,
+          page: paginatedData.page,
+          pageSize: paginatedData.pageSize,
+          totalPages: paginatedData.totalPages,
+        }
+      },
     };
   }
 
-  async getProject(projectId: string): Promise<ApiResponse<Project>> {
+  async getProject(projectId: string): Promise<ApiResponse<{ project: Project }>> {
     await this.delay();
     const project = mockProjects.find(p => p.id === projectId);
     
@@ -189,11 +225,11 @@ export class MockApiClient {
 
     return {
       success: true,
-      data: project,
+      data: { project },
     };
   }
 
-  async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'co2Achieved'>): Promise<ApiResponse<Project>> {
+  async createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'co2Achieved'>): Promise<ApiResponse<{ project: Project }>> {
     await this.delay();
     
     const newProject: Project = {
@@ -208,11 +244,11 @@ export class MockApiClient {
 
     return {
       success: true,
-      data: newProject,
+      data: { project: newProject },
     };
   }
 
-  async updateProject(projectId: string, project: Partial<Project>): Promise<ApiResponse<Project>> {
+  async updateProject(projectId: string, project: Partial<Project>): Promise<ApiResponse<{ project: Project }>> {
     await this.delay();
     
     const index = mockProjects.findIndex(p => p.id === projectId);
@@ -234,7 +270,7 @@ export class MockApiClient {
 
     return {
       success: true,
-      data: updatedProject,
+      data: { project: updatedProject },
     };
   }
 

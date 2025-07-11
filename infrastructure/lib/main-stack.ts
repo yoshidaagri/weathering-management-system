@@ -290,48 +290,144 @@ export class WeatheringProjectStack extends cdk.Stack {
     });
 
     // API Resources
-    const customersResource = api.root.addResource('customers');
-    const projectsResource = api.root.addResource('projects');
+    const apiResource = api.root.addResource('api');
+    const customersResource = apiResource.addResource('customers');
+    const customerResource = customersResource.addResource('{customerId}');
+    const projectsResource = apiResource.addResource('projects');
     const projectResource = projectsResource.addResource('{projectId}');
     const measurementsResource = projectResource.addResource('measurements');
+    const measurementResource = measurementsResource.addResource('{measurementId}');
+    const measurementBatchResource = measurementsResource.addResource('batch');
     const reportsResource = projectResource.addResource('reports');
+    const reportResource = reportsResource.addResource('{reportId}');
+    const reportDownloadResource = reportResource.addResource('download');
 
     // Customer endpoints
+    // GET /api/customers - 顧客一覧取得
     customersResource.addMethod('GET', new apigateway.LambdaIntegration(customerLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
+    
+    // POST /api/customers - 顧客作成
     customersResource.addMethod('POST', new apigateway.LambdaIntegration(customerLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // GET /api/customers/{customerId} - 顧客詳細取得
+    customerResource.addMethod('GET', new apigateway.LambdaIntegration(customerLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // PUT /api/customers/{customerId} - 顧客更新
+    customerResource.addMethod('PUT', new apigateway.LambdaIntegration(customerLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // DELETE /api/customers/{customerId} - 顧客削除
+    customerResource.addMethod('DELETE', new apigateway.LambdaIntegration(customerLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
     // Project endpoints
+    // GET /api/projects - プロジェクト一覧取得
     projectsResource.addMethod('GET', new apigateway.LambdaIntegration(projectLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
+    
+    // POST /api/projects - プロジェクト作成
     projectsResource.addMethod('POST', new apigateway.LambdaIntegration(projectLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // GET /api/projects/{projectId} - プロジェクト詳細取得
+    projectResource.addMethod('GET', new apigateway.LambdaIntegration(projectLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // PUT /api/projects/{projectId} - プロジェクト更新
+    projectResource.addMethod('PUT', new apigateway.LambdaIntegration(projectLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // DELETE /api/projects/{projectId} - プロジェクト削除
+    projectResource.addMethod('DELETE', new apigateway.LambdaIntegration(projectLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
     // Measurement endpoints
+    // GET /api/projects/{projectId}/measurements - 測定データ一覧取得
     measurementsResource.addMethod('GET', new apigateway.LambdaIntegration(measurementLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
+    
+    // POST /api/projects/{projectId}/measurements - 測定データ作成
     measurementsResource.addMethod('POST', new apigateway.LambdaIntegration(measurementLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // GET /api/projects/{projectId}/measurements/{measurementId} - 測定データ詳細取得
+    measurementResource.addMethod('GET', new apigateway.LambdaIntegration(measurementLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // PUT /api/projects/{projectId}/measurements/{measurementId} - 測定データ更新
+    measurementResource.addMethod('PUT', new apigateway.LambdaIntegration(measurementLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // DELETE /api/projects/{projectId}/measurements/{measurementId} - 測定データ削除
+    measurementResource.addMethod('DELETE', new apigateway.LambdaIntegration(measurementLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // POST /api/projects/{projectId}/measurements/batch - 測定データバッチ作成
+    measurementBatchResource.addMethod('POST', new apigateway.LambdaIntegration(measurementLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
     // Report endpoints
+    // POST /api/projects/{projectId}/reports - レポート生成
     reportsResource.addMethod('POST', new apigateway.LambdaIntegration(reportLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
+    
+    // GET /api/projects/{projectId}/reports - レポート一覧取得
     reportsResource.addMethod('GET', new apigateway.LambdaIntegration(reportLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // GET /api/projects/{projectId}/reports/{reportId} - レポート詳細取得
+    reportResource.addMethod('GET', new apigateway.LambdaIntegration(reportLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // DELETE /api/projects/{projectId}/reports/{reportId} - レポート削除
+    reportResource.addMethod('DELETE', new apigateway.LambdaIntegration(reportLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // GET /api/projects/{projectId}/reports/{reportId}/download - レポートダウンロード
+    reportDownloadResource.addMethod('GET', new apigateway.LambdaIntegration(reportLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });

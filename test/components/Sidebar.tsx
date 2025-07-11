@@ -1,8 +1,10 @@
 'use client';
 
+import { DashboardView } from '../lib/stores/ui-store';
+
 interface SidebarProps {
-  currentView: string;
-  onViewChange: (view: 'monitoring' | 'projects' | 'analysis' | 'reports') => void;
+  currentView: DashboardView;
+  onViewChange: (view: DashboardView) => void;
 }
 
 const menuItems = [
@@ -25,6 +27,16 @@ const menuItems = [
       </svg>
     ),
     description: '事業計画管理'
+  },
+  {
+    id: 'customers',
+    label: '顧客管理',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+      </svg>
+    ),
+    description: '顧客情報管理'
   },
   {
     id: 'analysis',
@@ -56,7 +68,7 @@ export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => onViewChange(item.id as any)}
+              onClick={() => onViewChange(item.id as DashboardView)}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
                 currentView === item.id
                   ? 'bg-blue-50 text-blue-700 border border-blue-200'
