@@ -48,6 +48,7 @@ export interface CustomerListResponse {
   customers: Customer[];
   nextToken?: string;
   totalCount?: number;
+  total?: number;
 }
 
 // APIレスポンス型
@@ -84,13 +85,127 @@ export interface ErrorState {
   code?: string;
 }
 
-// プロジェクト関連（将来使用）
+// プロジェクト関連
 export interface Project {
   projectId: string;
-  name: string;
+  projectName: string;
   description: string;
   customerId: string;
-  status: 'planning' | 'active' | 'completed' | 'cancelled';
+  customerName?: string; // UI表示用（結合データ）
+  location: {
+    prefecture: string;
+    city: string;
+    address: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  projectType: 'co2_removal' | 'wastewater_treatment' | 'combined';
+  targetMetrics: {
+    co2RemovalTarget?: number; // トン/年
+    wastewaterVolumeTarget?: number; // m³/日
+    processingCapacity?: number;
+  };
+  timeline: {
+    startDate: string;
+    endDate: string;
+    milestones?: Array<{
+      id: string;
+      name: string;
+      targetDate: string;
+      status: 'pending' | 'in_progress' | 'completed';
+    }>;
+  };
+  budget: {
+    totalBudget: number;
+    usedBudget?: number;
+    currency: 'JPY' | 'USD';
+  };
+  status: 'planning' | 'active' | 'completed' | 'cancelled' | 'on_hold';
+  tags?: string[];
+  assignedPersonnel?: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreateProjectRequest {
+  projectName: string;
+  description: string;
+  customerId: string;
+  location: {
+    prefecture: string;
+    city: string;
+    address: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  projectType: 'co2_removal' | 'wastewater_treatment' | 'combined';
+  targetMetrics: {
+    co2RemovalTarget?: number;
+    wastewaterVolumeTarget?: number;
+    processingCapacity?: number;
+  };
+  timeline: {
+    startDate: string;
+    endDate: string;
+  };
+  budget: {
+    totalBudget: number;
+    currency: 'JPY' | 'USD';
+  };
+  status?: 'planning' | 'active';
+  tags?: string[];
+  assignedPersonnel?: string[];
+}
+
+export interface UpdateProjectRequest {
+  projectName?: string;
+  description?: string;
+  location?: {
+    prefecture?: string;
+    city?: string;
+    address?: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  projectType?: 'co2_removal' | 'wastewater_treatment' | 'combined';
+  targetMetrics?: {
+    co2RemovalTarget?: number;
+    wastewaterVolumeTarget?: number;
+    processingCapacity?: number;
+  };
+  timeline?: {
+    startDate?: string;
+    endDate?: string;
+  };
+  budget?: {
+    totalBudget?: number;
+    usedBudget?: number;
+    currency?: 'JPY' | 'USD';
+  };
+  status?: 'planning' | 'active' | 'completed' | 'cancelled' | 'on_hold';
+  tags?: string[];
+  assignedPersonnel?: string[];
+}
+
+export interface ProjectQuery {
+  limit?: number;
+  nextToken?: string;
+  customerId?: string;
+  status?: 'planning' | 'active' | 'completed' | 'cancelled' | 'on_hold';
+  projectType?: 'co2_removal' | 'wastewater_treatment' | 'combined';
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface ProjectListResponse {
+  projects: Project[];
+  nextToken?: string;
+  total?: number;
 }

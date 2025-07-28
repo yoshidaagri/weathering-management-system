@@ -4,6 +4,11 @@ import {
   UpdateCustomerRequest, 
   CustomerQuery, 
   CustomerListResponse,
+  Project,
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  ProjectQuery,
+  ProjectListResponse,
   ApiResponse 
 } from '@/types';
 
@@ -56,10 +61,101 @@ const mockCustomers: Customer[] = [
   }
 ];
 
+// モック プロジェクトデータ
+const mockProjects: Project[] = [
+  {
+    projectId: 'project-001',
+    projectName: '北海道石炭採掘CO2除去プロジェクト',
+    description: '石炭採掘廃水を利用した風化促進によるCO2除去実証実験',
+    customerId: 'customer-001',
+    customerName: '株式会社グリーンテック',
+    location: {
+      prefecture: '北海道',
+      city: '夕張市',
+      address: '夕張市清水沢宮前町1-1',
+      coordinates: {
+        latitude: 43.0642,
+        longitude: 141.9716
+      }
+    },
+    projectType: 'co2_removal',
+    targetMetrics: {
+      co2RemovalTarget: 1000,
+      wastewaterVolumeTarget: 500,
+      processingCapacity: 200
+    },
+    timeline: {
+      startDate: '2024-04-01T00:00:00Z',
+      endDate: '2025-03-31T23:59:59Z',
+      milestones: [
+        {
+          id: 'milestone-001',
+          name: '実証実験設備設置',
+          targetDate: '2024-06-30T23:59:59Z',
+          status: 'completed'
+        },
+        {
+          id: 'milestone-002',
+          name: '第1期データ収集完了',
+          targetDate: '2024-09-30T23:59:59Z',
+          status: 'in_progress'
+        }
+      ]
+    },
+    budget: {
+      totalBudget: 50000000,
+      usedBudget: 20000000,
+      currency: 'JPY'  
+    },
+    status: 'active',
+    tags: ['co2-removal', 'mining', 'pilot'],
+    assignedPersonnel: ['田中太郎', '佐藤花子'],
+    createdAt: '2024-03-15T09:00:00Z',
+    updatedAt: '2024-07-25T14:30:00Z'
+  },
+  {
+    projectId: 'project-002', 
+    projectName: '大阪工業廃水処理統合システム',
+    description: '製造業廃水の処理と同時CO2除去を実現する統合システム開発',
+    customerId: 'customer-002',
+    customerName: 'エコマイニング株式会社',
+    location: {
+      prefecture: '大阪府',
+      city: '堺市',
+      address: '堺市西区築港浜寺町1-1',
+      coordinates: {
+        latitude: 34.5731,
+        longitude: 135.4631
+      }
+    },
+    projectType: 'combined',
+    targetMetrics: {
+      co2RemovalTarget: 800,
+      wastewaterVolumeTarget: 1000,
+      processingCapacity: 400
+    },
+    timeline: {
+      startDate: '2024-06-01T00:00:00Z',
+      endDate: '2025-05-31T23:59:59Z'
+    },
+    budget: {
+      totalBudget: 75000000,
+      usedBudget: 15000000,
+      currency: 'JPY'
+    },
+    status: 'planning',
+    tags: ['wastewater', 'manufacturing', 'integration'],
+    assignedPersonnel: ['山田一郎'],
+    createdAt: '2024-05-10T10:15:00Z',
+    updatedAt: '2024-07-20T16:45:00Z'
+  }
+];
+
 class ApiClient {
   private baseUrl: string;
   private accessToken: string | null = null;
   private mockData: Customer[] = [...mockCustomers];
+  private mockProjectData: Project[] = [...mockProjects];
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -177,6 +273,68 @@ class ApiClient {
     });
   }
 
+  // プロジェクト管理API
+  async getProjects(query?: ProjectQuery): Promise<ProjectListResponse> {
+    if (USE_MOCK_API) {
+      return this.mockGetProjects(query);
+    }
+
+    const searchParams = new URLSearchParams();
+    
+    if (query?.limit) searchParams.set('limit', query.limit.toString());
+    if (query?.nextToken) searchParams.set('nextToken', query.nextToken);
+    if (query?.customerId) searchParams.set('customerId', query.customerId);
+    if (query?.status) searchParams.set('status', query.status);
+    if (query?.projectType) searchParams.set('projectType', query.projectType);
+    if (query?.search) searchParams.set('search', query.search);
+    if (query?.startDate) searchParams.set('startDate', query.startDate);
+    if (query?.endDate) searchParams.set('endDate', query.endDate);
+
+    const queryString = searchParams.toString();
+    const endpoint = `/api/projects${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<ProjectListResponse>(endpoint);
+  }
+
+  async getProject(projectId: string): Promise<{ project: Project }> {
+    if (USE_MOCK_API) {
+      return this.mockGetProject(projectId);
+    }
+    return this.request<{ project: Project }>(`/api/projects/${projectId}`);
+  }
+
+  async createProject(data: CreateProjectRequest): Promise<{ project: Project; message: string }> {
+    if (USE_MOCK_API) {
+      return this.mockCreateProject(data);
+    }
+    return this.request<{ project: Project; message: string }>('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProject(
+    projectId: string, 
+    data: UpdateProjectRequest
+  ): Promise<{ project: Project; message: string }> {
+    if (USE_MOCK_API) {
+      return this.mockUpdateProject(projectId, data);
+    }
+    return this.request<{ project: Project; message: string }>(`/api/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProject(projectId: string): Promise<{ message: string }> {
+    if (USE_MOCK_API) {
+      return this.mockDeleteProject(projectId);
+    }
+    return this.request<{ message: string }>(`/api/projects/${projectId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // ヘルスチェック
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     if (USE_MOCK_API) {
@@ -240,7 +398,7 @@ class ApiClient {
       customerId: `customer-${Date.now()}`,
       companyName: data.companyName,
       industry: data.industry,
-      status: data.status,
+      status: data.status || 'active',
       contactInfo: data.contactInfo,
       projectCount: 0,
       createdAt: new Date().toISOString(),
@@ -265,7 +423,7 @@ class ApiClient {
     
     const updatedCustomer: Customer = {
       ...this.mockData[index],
-      ...data,
+      ...(data as Partial<Customer>),
       updatedAt: new Date().toISOString()
     };
     
@@ -289,6 +447,127 @@ class ApiClient {
     
     return {
       message: '顧客を正常に削除しました'
+    };
+  }
+
+  // プロジェクト モックAPI実装
+  private async mockGetProjects(query?: ProjectQuery): Promise<ProjectListResponse> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    let filteredProjects = [...this.mockProjectData];
+
+    // フィルタリング
+    if (query?.search) {
+      const searchLower = query.search.toLowerCase();
+      filteredProjects = filteredProjects.filter(project =>
+        project.projectName.toLowerCase().includes(searchLower) ||
+        project.description.toLowerCase().includes(searchLower) ||
+        project.customerName?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (query?.status) {
+      filteredProjects = filteredProjects.filter(project => project.status === query.status);
+    }
+
+    if (query?.projectType) {
+      filteredProjects = filteredProjects.filter(project => project.projectType === query.projectType);
+    }
+
+    if (query?.customerId) {
+      filteredProjects = filteredProjects.filter(project => project.customerId === query.customerId);
+    }
+
+    const limit = query?.limit || 10;
+    const projects = filteredProjects.slice(0, limit);
+
+    return {
+      projects,
+      nextToken: filteredProjects.length > limit ? 'mock-next-token' : undefined,
+      total: filteredProjects.length
+    };
+  }
+
+  private async mockGetProject(projectId: string): Promise<{ project: Project }> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    const project = this.mockProjectData.find(p => p.projectId === projectId);
+    if (!project) {
+      throw new Error('Project not found');
+    }
+    
+    return { project };
+  }
+
+  private async mockCreateProject(data: CreateProjectRequest): Promise<{ project: Project; message: string }> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 顧客存在確認
+    const customer = this.mockData.find(c => c.customerId === data.customerId);
+    if (!customer) {
+      throw new Error('Customer not found');
+    }
+
+    const newProject: Project = {
+      projectId: `project-${Date.now()}`,
+      projectName: data.projectName,
+      description: data.description,
+      customerId: data.customerId,
+      customerName: customer.companyName,
+      location: data.location,
+      projectType: data.projectType,
+      targetMetrics: data.targetMetrics,
+      timeline: data.timeline,
+      budget: data.budget,
+      status: data.status || 'planning',
+      tags: data.tags || [],
+      assignedPersonnel: data.assignedPersonnel || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    this.mockProjectData.unshift(newProject);
+    
+    return {
+      project: newProject,
+      message: 'プロジェクトを正常に登録しました'
+    };
+  }
+
+  private async mockUpdateProject(projectId: string, data: UpdateProjectRequest): Promise<{ project: Project; message: string }> {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    const index = this.mockProjectData.findIndex(p => p.projectId === projectId);
+    if (index === -1) {
+      throw new Error('Project not found');
+    }
+    
+    const updatedProject: Project = {
+      ...this.mockProjectData[index],
+      ...(data as Partial<Project>),
+      updatedAt: new Date().toISOString()
+    };
+    
+    this.mockProjectData[index] = updatedProject;
+    
+    return {
+      project: updatedProject,
+      message: 'プロジェクト情報を正常に更新しました'
+    };
+  }
+
+  private async mockDeleteProject(projectId: string): Promise<{ message: string }> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const index = this.mockProjectData.findIndex(p => p.projectId === projectId);
+    if (index === -1) {
+      throw new Error('Project not found');
+    }
+    
+    this.mockProjectData.splice(index, 1);
+    
+    return {
+      message: 'プロジェクトを正常に削除しました'
     };
   }
 }
