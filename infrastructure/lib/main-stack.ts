@@ -9,6 +9,8 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+import * as logs from 'aws-cdk-lib/aws-logs';
 
 export class WeatheringProjectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -115,7 +117,7 @@ export class WeatheringProjectStack extends cdk.Stack {
     });
 
     // ==================== Database ====================
-    // DynamoDB Table
+    // DynamoDB Table  
     const table = new dynamodb.Table(this, 'WeatheringProjectTable', {
       tableName: 'WeatheringProjectData',
       partitionKey: {
@@ -126,7 +128,10 @@ export class WeatheringProjectStack extends cdk.Stack {
         name: 'SK',
         type: dynamodb.AttributeType.STRING,
       },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      // Provisioned Billing with Auto Scaling for better cost control
+      billingMode: dynamodb.BillingMode.PROVISIONED,
+      readCapacity: 5,
+      writeCapacity: 5,
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
       pointInTimeRecovery: true,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
@@ -144,6 +149,8 @@ export class WeatheringProjectStack extends cdk.Stack {
         name: 'GSI1SK',
         type: dynamodb.AttributeType.STRING,
       },
+      readCapacity: 3,
+      writeCapacity: 3,
     });
 
     // GSI2
@@ -157,6 +164,25 @@ export class WeatheringProjectStack extends cdk.Stack {
         name: 'GSI2SK',
         type: dynamodb.AttributeType.STRING,
       },
+      readCapacity: 3,
+      writeCapacity: 3,
+    });
+
+    // DynamoDB Auto Scaling設定
+    const readScaling = table.autoScaleReadCapacity({
+      minCapacity: 5,
+      maxCapacity: 100,
+    });
+    readScaling.scaleOnUtilization({
+      targetUtilizationPercent: 70,
+    });
+
+    const writeScaling = table.autoScaleWriteCapacity({
+      minCapacity: 5,
+      maxCapacity: 100,
+    });
+    writeScaling.scaleOnUtilization({
+      targetUtilizationPercent: 70,
     });
 
     // ==================== Storage ====================
@@ -216,11 +242,19 @@ export class WeatheringProjectStack extends cdk.Stack {
       environment: {
         TABLE_NAME: table.tableName,
         BUCKET_NAME: dataBucket.bucketName,
+        // DynamoDB Connection Pool最適化
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       },
       role: lambdaRole,
       layers: [lambdaLayer],
-      timeout: cdk.Duration.seconds(30),
-      memorySize: 512,
+      timeout: cdk.Duration.seconds(15),
+      memorySize: 256,
+      reservedConcurrentExecutions: 10,
+    });
+
+    // Provisioned Concurrency for Customer API (高頻度アクセス想定)
+    const customerLambdaAlias = customerLambda.addAlias('live', {
+      provisionedConcurrentExecutions: 2,
     });
 
     // Project API Lambda
@@ -231,14 +265,21 @@ export class WeatheringProjectStack extends cdk.Stack {
       environment: {
         TABLE_NAME: table.tableName,
         BUCKET_NAME: dataBucket.bucketName,
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       },
       role: lambdaRole,
       layers: [lambdaLayer],
-      timeout: cdk.Duration.seconds(30),
-      memorySize: 512,
+      timeout: cdk.Duration.seconds(20),
+      memorySize: 384,
+      reservedConcurrentExecutions: 15,
     });
 
-    // Measurement API Lambda
+    // Provisioned Concurrency for Project API
+    const projectLambdaAlias = projectLambda.addAlias('live', {
+      provisionedConcurrentExecutions: 3,
+    });
+
+    // Measurement API Lambda  
     const measurementLambda = new lambda.Function(this, 'MeasurementApiFunction', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
@@ -246,11 +287,18 @@ export class WeatheringProjectStack extends cdk.Stack {
       environment: {
         TABLE_NAME: table.tableName,
         BUCKET_NAME: dataBucket.bucketName,
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       },
       role: lambdaRole,
       layers: [lambdaLayer],
-      timeout: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.seconds(25),
       memorySize: 512,
+      reservedConcurrentExecutions: 20,
+    });
+
+    // Provisioned Concurrency for Measurement API (高頻度データ取得想定)
+    const measurementLambdaAlias = measurementLambda.addAlias('live', {
+      provisionedConcurrentExecutions: 5,
     });
 
     // Report Generator Lambda
@@ -261,11 +309,37 @@ export class WeatheringProjectStack extends cdk.Stack {
       environment: {
         TABLE_NAME: table.tableName,
         BUCKET_NAME: dataBucket.bucketName,
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       },
       role: lambdaRole,
       layers: [lambdaLayer],
-      timeout: cdk.Duration.minutes(5),
-      memorySize: 1024,
+      timeout: cdk.Duration.minutes(3),
+      memorySize: 768,
+      reservedConcurrentExecutions: 5,
+    });
+
+    // Report Lambda は低頻度なのでProvisioned Concurrencyは設定しない
+
+    // ML Prediction API Lambda
+    const mlPredictionLambda = new lambda.Function(this, 'MLPredictionFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('lambda/ml-prediction-api'),
+      environment: {
+        TABLE_NAME: table.tableName,
+        BUCKET_NAME: dataBucket.bucketName,
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+      },
+      role: lambdaRole,
+      layers: [lambdaLayer],
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 512,
+      reservedConcurrentExecutions: 10,
+    });
+
+    // ML Prediction Lambda Alias
+    const mlPredictionLambdaAlias = mlPredictionLambda.addAlias('live', {
+      provisionedConcurrentExecutions: 2,
     });
 
     // ==================== API Gateway ====================
@@ -273,14 +347,93 @@ export class WeatheringProjectStack extends cdk.Stack {
       restApiName: 'Weathering Project API',
       deployOptions: {
         stageName: 'prod',
-        throttlingRateLimit: 100,
-        throttlingBurstLimit: 200,
+        throttlingRateLimit: 200,
+        throttlingBurstLimit: 400,
+        // キャッシュ設定追加
+        cachingEnabled: true,
+        cacheClusterEnabled: true,
+        cacheClusterSize: '0.5',
+        cacheTtl: cdk.Duration.minutes(5),
       },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: ['Content-Type', 'Authorization'],
       },
+    });
+
+    // ==================== CloudWatch Monitoring ====================
+    // Lambda関数のログ保持期間を設定してコスト削減
+    new logs.LogGroup(this, 'CustomerLambdaLogGroup', {
+      logGroupName: `/aws/lambda/${customerLambda.functionName}`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    new logs.LogGroup(this, 'ProjectLambdaLogGroup', {
+      logGroupName: `/aws/lambda/${projectLambda.functionName}`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    new logs.LogGroup(this, 'MeasurementLambdaLogGroup', {
+      logGroupName: `/aws/lambda/${measurementLambda.functionName}`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    new logs.LogGroup(this, 'ReportLambdaLogGroup', {
+      logGroupName: `/aws/lambda/${reportLambda.functionName}`,
+      retention: logs.RetentionDays.TWO_WEEKS,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    new logs.LogGroup(this, 'MLPredictionLambdaLogGroup', {
+      logGroupName: `/aws/lambda/${mlPredictionLambda.functionName}`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // パフォーマンス監視用のCloudWatch Alarm
+    // Lambda Duration Alarm
+    new cloudwatch.Alarm(this, 'CustomerLambdaDurationAlarm', {
+      alarmName: 'customer-lambda-duration-high',
+      metric: customerLambda.metricDuration(),
+      threshold: 10000, // 10秒
+      evaluationPeriods: 2,
+      alarmDescription: 'Customer Lambda execution duration is too high',
+    });
+
+    // DynamoDB Throttle Alarm
+    new cloudwatch.Alarm(this, 'DynamoDBThrottleAlarm', {
+      alarmName: 'dynamodb-throttle-detected',
+      metric: new cloudwatch.Metric({
+        namespace: 'AWS/DynamoDB',
+        metricName: 'UserErrors',
+        dimensionsMap: {
+          TableName: table.tableName,
+        },
+        statistic: 'Sum',
+      }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      alarmDescription: 'DynamoDB throttling detected',
+    });
+
+    // API Gateway Error Rate Alarm
+    new cloudwatch.Alarm(this, 'ApiGateway4xxAlarm', {
+      alarmName: 'api-gateway-4xx-errors',
+      metric: new cloudwatch.Metric({
+        namespace: 'AWS/ApiGateway',
+        metricName: '4XXError',
+        dimensionsMap: {
+          ApiName: api.restApiName,
+        },
+        statistic: 'Sum',
+      }),
+      threshold: 10,
+      evaluationPeriods: 2,
+      alarmDescription: 'High 4XX error rate detected',
     });
 
     // Cognito Authorizer
@@ -301,6 +454,16 @@ export class WeatheringProjectStack extends cdk.Stack {
     const reportsResource = projectResource.addResource('reports');
     const reportResource = reportsResource.addResource('{reportId}');
     const reportDownloadResource = reportResource.addResource('download');
+    
+    // ML Prediction API Resources
+    const predictionsResource = projectResource.addResource('predictions');
+    const co2PredictionResource = predictionsResource.addResource('co2-fixation');
+    const anomaliesResource = projectResource.addResource('anomalies');
+    const recommendationsResource = projectResource.addResource('recommendations');
+    const modelsResource = apiResource.addResource('models');
+    const trainResource = modelsResource.addResource('train');
+    const modelResource = modelsResource.addResource('{modelId}');
+    const performanceResource = modelResource.addResource('performance');
 
     // Customer endpoints
     // GET /api/customers - 顧客一覧取得
@@ -428,6 +591,43 @@ export class WeatheringProjectStack extends cdk.Stack {
 
     // GET /api/projects/{projectId}/reports/{reportId}/download - レポートダウンロード
     reportDownloadResource.addMethod('GET', new apigateway.LambdaIntegration(reportLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // ML Prediction endpoints
+    // GET /api/projects/{projectId}/predictions/co2-fixation - CO2固定量予測
+    co2PredictionResource.addMethod('GET', new apigateway.LambdaIntegration(mlPredictionLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+      requestParameters: {
+        'method.request.querystring.timeframe': false,
+      },
+    });
+
+    // GET /api/projects/{projectId}/anomalies - 異常検出
+    anomaliesResource.addMethod('GET', new apigateway.LambdaIntegration(mlPredictionLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+      requestParameters: {
+        'method.request.querystring.period': false,
+      },
+    });
+
+    // GET /api/projects/{projectId}/recommendations - 最適化推奨
+    recommendationsResource.addMethod('GET', new apigateway.LambdaIntegration(mlPredictionLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // POST /api/models/train - モデル訓練開始
+    trainResource.addMethod('POST', new apigateway.LambdaIntegration(mlPredictionLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // GET /api/models/{modelId}/performance - モデル性能取得
+    performanceResource.addMethod('GET', new apigateway.LambdaIntegration(mlPredictionLambda), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });

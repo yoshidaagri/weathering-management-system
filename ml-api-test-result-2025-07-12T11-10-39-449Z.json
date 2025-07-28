@@ -1,0 +1,241 @@
+{
+  "totalTests": 26,
+  "passed": 0,
+  "failed": 26,
+  "details": [
+    {
+      "endpoint": "顧客一覧取得",
+      "method": "GET",
+      "path": "/customers",
+      "statusCode": 401,
+      "duration": 497,
+      "success": false,
+      "response": "{\"message\":\"Unauthorized\"}"
+    },
+    {
+      "endpoint": "顧客作成",
+      "method": "POST",
+      "path": "/customers",
+      "statusCode": 401,
+      "duration": 48,
+      "success": false,
+      "response": "{\"message\":\"Unauthorized\"}"
+    },
+    {
+      "endpoint": "顧客詳細取得",
+      "method": "GET",
+      "path": "/customers/test-customer-id",
+      "statusCode": 403,
+      "duration": 46,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "顧客更新",
+      "method": "PUT",
+      "path": "/customers/test-customer-id",
+      "statusCode": 403,
+      "duration": 52,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "顧客削除",
+      "method": "DELETE",
+      "path": "/customers/test-customer-id",
+      "statusCode": 403,
+      "duration": 50,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "プロジェクト一覧取得",
+      "method": "GET",
+      "path": "/projects",
+      "statusCode": 401,
+      "duration": 55,
+      "success": false,
+      "response": "{\"message\":\"Unauthorized\"}"
+    },
+    {
+      "endpoint": "プロジェクト作成",
+      "method": "POST",
+      "path": "/projects",
+      "statusCode": 401,
+      "duration": 44,
+      "success": false,
+      "response": "{\"message\":\"Unauthorized\"}"
+    },
+    {
+      "endpoint": "プロジェクト詳細取得",
+      "method": "GET",
+      "path": "/projects/test-project-id",
+      "statusCode": 403,
+      "duration": 46,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "プロジェクト更新",
+      "method": "PUT",
+      "path": "/projects/test-project-id",
+      "statusCode": 403,
+      "duration": 39,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "プロジェクト削除",
+      "method": "DELETE",
+      "path": "/projects/test-project-id",
+      "statusCode": 403,
+      "duration": 57,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "測定データ一覧取得",
+      "method": "GET",
+      "path": "/measurements",
+      "statusCode": 403,
+      "duration": 47,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "測定データ作成",
+      "method": "POST",
+      "path": "/measurements",
+      "statusCode": 403,
+      "duration": 40,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "測定データ詳細取得",
+      "method": "GET",
+      "path": "/measurements/test-measurement-id",
+      "statusCode": 403,
+      "duration": 45,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "測定データ更新",
+      "method": "PUT",
+      "path": "/measurements/test-measurement-id",
+      "statusCode": 403,
+      "duration": 34,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "測定データ削除",
+      "method": "DELETE",
+      "path": "/measurements/test-measurement-id",
+      "statusCode": 403,
+      "duration": 41,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "レポート一覧取得",
+      "method": "GET",
+      "path": "/reports",
+      "statusCode": 403,
+      "duration": 41,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "レポート作成",
+      "method": "POST",
+      "path": "/reports",
+      "statusCode": 403,
+      "duration": 42,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "レポート詳細取得",
+      "method": "GET",
+      "path": "/reports/test-report-id",
+      "statusCode": 403,
+      "duration": 34,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "レポート更新",
+      "method": "PUT",
+      "path": "/reports/test-report-id",
+      "statusCode": 403,
+      "duration": 34,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "レポート削除",
+      "method": "DELETE",
+      "path": "/reports/test-report-id",
+      "statusCode": 403,
+      "duration": 40,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "ヘルスチェック",
+      "method": "GET",
+      "path": "/health",
+      "statusCode": 403,
+      "duration": 44,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "CO2固定量予測",
+      "method": "GET",
+      "path": "/ml/predictions/co2-fixation/test-project-id",
+      "statusCode": 403,
+      "duration": 40,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "異常検出",
+      "method": "GET",
+      "path": "/ml/anomalies/test-project-id",
+      "statusCode": 403,
+      "duration": 38,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "最適化推奨",
+      "method": "GET",
+      "path": "/ml/recommendations/test-project-id",
+      "statusCode": 403,
+      "duration": 47,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "モデル訓練",
+      "method": "POST",
+      "path": "/ml/models/train",
+      "statusCode": 403,
+      "duration": 44,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    },
+    {
+      "endpoint": "モデル性能評価",
+      "method": "GET",
+      "path": "/ml/models/test-model-id/performance",
+      "statusCode": 403,
+      "duration": 45,
+      "success": false,
+      "response": "{\"message\":\"Missing Authentication Token\"}"
+    }
+  ]
+}

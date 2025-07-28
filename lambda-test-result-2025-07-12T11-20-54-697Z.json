@@ -1,0 +1,79 @@
+{
+  "totalTests": 8,
+  "passed": 0,
+  "failed": 8,
+  "details": [
+    {
+      "name": "顧客一覧取得",
+      "functionName": "WeatheringProjectStack-CustomerApiFunctionBCE3D4F0-1WyjSMj5GKPb",
+      "success": false,
+      "statusCode": 500,
+      "duration": 1791,
+      "response": "",
+      "error": "Command failed: aws lambda invoke --function-name WeatheringProjectStack-CustomerApiFunctionBCE3D4F0-1WyjSMj5GKPb --payload file://C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319239995.json response.json\n\r\nInvalid base64: \"{\"httpMethod\":\"GET\",\"path\":\"/customers\",\"queryStringParameters\":null,\"headers\":{\"Content-Type\":\"application/json\"}}\"\r\n"
+    },
+    {
+      "name": "顧客作成",
+      "functionName": "WeatheringProjectStack-CustomerApiFunctionBCE3D4F0-1WyjSMj5GKPb",
+      "success": false,
+      "statusCode": 500,
+      "duration": 1892,
+      "response": "",
+      "error": "Command failed: aws lambda invoke --function-name WeatheringProjectStack-CustomerApiFunctionBCE3D4F0-1WyjSMj5GKPb --payload file://C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319241787.json response.json\n\r\nError parsing parameter '--payload': Unable to load paramfile (C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319241787.json), text contents could not be decoded.  If this is a binary file, please use the fileb:// prefix instead of the file:// prefix.\r\n"
+    },
+    {
+      "name": "プロジェクト一覧取得",
+      "functionName": "WeatheringProjectStack-ProjectApiFunction931A0493-RS5XbBlbKxgS",
+      "success": false,
+      "statusCode": 500,
+      "duration": 1443,
+      "response": "",
+      "error": "Command failed: aws lambda invoke --function-name WeatheringProjectStack-ProjectApiFunction931A0493-RS5XbBlbKxgS --payload file://C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319243681.json response.json\n\r\nInvalid base64: \"{\"httpMethod\":\"GET\",\"path\":\"/projects\",\"queryStringParameters\":null,\"headers\":{\"Content-Type\":\"application/json\"}}\"\r\n"
+    },
+    {
+      "name": "プロジェクト作成",
+      "functionName": "WeatheringProjectStack-ProjectApiFunction931A0493-RS5XbBlbKxgS",
+      "success": false,
+      "statusCode": 500,
+      "duration": 1268,
+      "response": "",
+      "error": "Command failed: aws lambda invoke --function-name WeatheringProjectStack-ProjectApiFunction931A0493-RS5XbBlbKxgS --payload file://C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319245124.json response.json\n\r\nError parsing parameter '--payload': Unable to load paramfile (C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319245124.json), text contents could not be decoded.  If this is a binary file, please use the fileb:// prefix instead of the file:// prefix.\r\n"
+    },
+    {
+      "name": "測定データ一覧取得",
+      "functionName": "WeatheringProjectStack-MeasurementApiFunction87069-SDaRP0fzM5ow",
+      "success": false,
+      "statusCode": 500,
+      "duration": 2982,
+      "response": "",
+      "error": "Command failed: aws lambda invoke --function-name WeatheringProjectStack-MeasurementApiFunction87069-SDaRP0fzM5ow --payload file://C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319246394.json response.json\n\r\nAn error occurred (InvalidRequestContentException) when calling the Invoke operation: Could not parse request body into json: Could not parse payload into json: Unexpected character ((CTRL-CHAR, code 134)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\r\n at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 1]\r\n"
+    },
+    {
+      "name": "測定データ作成",
+      "functionName": "WeatheringProjectStack-MeasurementApiFunction87069-SDaRP0fzM5ow",
+      "success": false,
+      "statusCode": 500,
+      "duration": 2148,
+      "response": "",
+      "error": "Command failed: aws lambda invoke --function-name WeatheringProjectStack-MeasurementApiFunction87069-SDaRP0fzM5ow --payload file://C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319249376.json response.json\n\r\nInvalid base64: \"{\"httpMethod\":\"POST\",\"path\":\"/projects/test-project-id/measurements\",\"pathParameters\":{\"projectId\":\"test-project-id\"},\"body\":\"{\\\"pH\\\":7.2,\\\"temperature\\\":15.5,\\\"flow\\\":100,\\\"co2Concentration\\\":400,\\\"measuredAt\\\":\\\"2025-07-12T11:20:46.393Z\\\"}\",\"headers\":{\"Content-Type\":\"application/json\"}}\"\r\n"
+    },
+    {
+      "name": "レポート一覧取得",
+      "functionName": "WeatheringProjectStack-ReportGeneratorFunction9B20-90lWr7dbMqNC",
+      "success": false,
+      "statusCode": 500,
+      "duration": 1460,
+      "response": "",
+      "error": "Command failed: aws lambda invoke --function-name WeatheringProjectStack-ReportGeneratorFunction9B20-90lWr7dbMqNC --payload file://C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319251524.json response.json\n\r\nInvalid base64: \"{\"httpMethod\":\"GET\",\"path\":\"/projects/test-project-id/reports\",\"pathParameters\":{\"projectId\":\"test-project-id\"},\"queryStringParameters\":null,\"headers\":{\"Content-Type\":\"application/json\"}}\"\r\n"
+    },
+    {
+      "name": "レポート生成",
+      "functionName": "WeatheringProjectStack-ReportGeneratorFunction9B20-90lWr7dbMqNC",
+      "success": false,
+      "statusCode": 500,
+      "duration": 1709,
+      "response": "",
+      "error": "Command failed: aws lambda invoke --function-name WeatheringProjectStack-ReportGeneratorFunction9B20-90lWr7dbMqNC --payload file://C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319252985.json response.json\n\r\nError parsing parameter '--payload': Unable to load paramfile (C:\\optimize\\weathering-management-system\\test-scripts\\temp-payload-1752319252985.json), text contents could not be decoded.  If this is a binary file, please use the fileb:// prefix instead of the file:// prefix.\r\n"
+    }
+  ]
+}

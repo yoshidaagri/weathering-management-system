@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猫の餌タイマー</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timer-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .time-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 30px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .path-container {
+            position: relative;
+            height: 120px;
+            background: #f0f8ff;
+            border: 3px solid #ddd;
+            border-radius: 60px;
+            margin: 30px 0;
+            overflow: hidden;
+        }
+
+        .path {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            right: 10px;
+            height: 4px;
+            background: #ddd;
+            transform: translateY(-50%);
+            border-radius: 2px;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        .cat {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2.5em;
+            transition: left 1s ease;
+            left: 0%;
+        }
+
+        .food {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            font-size: 2.5em;
+        }
+
+        .status {
+            font-size: 1.2em;
+            color: #555;
+            margin-top: 20px;
+        }
+
+        .completed {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            animation: celebrate 2s ease-in-out infinite;
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .cat-walking {
+            animation: walk 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes walk {
+            0% { transform: translateY(-50%) rotate(-2deg); }
+            100% { transform: translateY(-50%) rotate(2deg); }
+        }
+
+        .target-time {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .current-time {
+            color: #666;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="timer-container" id="timerContainer">
+        <h1>🐱 猫の餌タイマー 🍽️</h1>
+        
+        <div class="target-time">
+            <strong>目標時刻: 12:20</strong>
+        </div>
+        
+        <div class="time-display" id="timeDisplay">計算中...</div>
+        
+        <div class="path-container">
+            <div class="path">
+                <div class="progress" id="progress"></div>
+            </div>
+            <div class="cat" id="cat">🐱</div>
+            <div class="food">🍽️</div>
+        </div>
+        
+        <div class="status" id="status">猫ちゃんが餌に向かっています...</div>
+        
+        <div class="current-time" id="currentTime"></div>
+    </div>
+
+    <script>
+        function updateTimer() {
+            const now = new Date();
+            const target = new Date();
+            
+            // 今日の12:20に設定
+            target.setHours(12, 20, 0, 0);
+            
+            // もし現在時刻が12:20を過ぎている場合は明日の12:20に設定
+            if (now > target) {
+                target.setDate(target.getDate() + 1);
+            }
+            
+            const timeDiff = target - now;
+            
+            // 現在時刻を表示
+            document.getElementById('currentTime').textContent = 
+                `現在時刻: ${now.toLocaleTimeString('ja-JP')}`;
+            
+            if (timeDiff <= 0) {
+                // タイマー終了
+                document.getElementById('timeDisplay').textContent = '00:00:00';
+                document.getElementById('status').textContent = '🎉 猫ちゃんが餌にたどり着きました！';
+                document.getElementById('timerContainer').classList.add('completed');
+                document.getElementById('cat').style.left = 'calc(100% - 60px)';
+                document.getElementById('progress').style.width = '100%';
+                document.getElementById('cat').classList.remove('cat-walking');
+                return;
+            }
+            
+            // 残り時間を計算
+            const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            
+            // 時間を表示
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timeDisplay').textContent = timeString;
+            
+            // 進行度を計算（実際の残り時間基準）
+            const startTime = new Date();
+            startTime.setHours(0, 0, 0, 0); // 今日の0時から開始
+            
+            // もし現在時刻が12:20を過ぎている場合の調整
+            if (now.getHours() >= 12 && now.getMinutes() >= 20) {
+                startTime.setDate(startTime.getDate() + 1); // 明日の0時から
+            }
+            
+            const totalTimeToTarget = target - startTime; // 開始時間から目標時間まで
+            const elapsedTime = totalTimeToTarget - timeDiff; // 経過した時間
+            const progressPercent = Math.max(0, Math.min((elapsedTime / totalTimeToTarget) * 100, 100));
+            
+            // 猫の位置を更新（ゆっくり進むように）
+            const catPosition = Math.min(progressPercent * 0.6, 75); // もっとゆっくり、75%で止める
+            document.getElementById('cat').style.left = `${catPosition}%`;
+            document.getElementById('progress').style.width = `${progressPercent}%`;
+            
+            // 猫を歩かせる
+            if (timeDiff > 0) {
+                document.getElementById('cat').classList.add('cat-walking');
+            }
+            
+            // ステータス更新
+            if (hours > 0) {
+                document.getElementById('status').textContent = `猫ちゃんがのんびり歩いています... あと${hours}時間${minutes}分`;
+            } else if (minutes > 5) {
+                document.getElementById('status').textContent = `猫ちゃんが少し急ぎ始めました... あと${minutes}分`;
+            } else if (minutes > 0) {
+                document.getElementById('status').textContent = `猫ちゃんが走っています！ あと${minutes}分${seconds}秒`;
+            } else {
+                document.getElementById('status').textContent = `猫ちゃんがダッシュ中！ あと${seconds}秒！`;
+            }
+        }
+        
+        // 初回実行
+        updateTimer();
+        
+        // 1秒ごとに更新
+        setInterval(updateTimer, 1000);
+    </script>
+</body>
+</html>

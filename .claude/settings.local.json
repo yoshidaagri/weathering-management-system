@@ -5,7 +5,13 @@
       "Bash(npx next dev:*)",
       "Bash(ss:*)",
       "Bash(npm run build:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(ls:*)",
+      "Bash(npx cdk:*)",
+      "Bash(npx tsc:*)",
+      "Bash(mv:*)",
+      "Bash(npx next build:*)",
+      "Bash(npx next lint:*)"
     ],
     "deny": []
   }

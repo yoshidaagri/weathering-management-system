@@ -1,0 +1,1 @@
+{"httpMethod":"POST","path":"/customers","body":"{\"name\":\"テスト顧客\",\"email\":\"test@example.com\",\"phone\":\"03-1234-5678\"}","headers":{"Content-Type":"application/json"}}

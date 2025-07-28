@@ -1,0 +1,71 @@
+{
+  "totalTests": 8,
+  "passed": 8,
+  "failed": 0,
+  "details": [
+    {
+      "name": "顧客一覧取得",
+      "functionName": "WeatheringProjectStack-CustomerApiFunctionBCE3D4F0-1WyjSMj5GKPb",
+      "success": true,
+      "statusCode": 200,
+      "duration": 3037,
+      "response": "{}"
+    },
+    {
+      "name": "顧客作成",
+      "functionName": "WeatheringProjectStack-CustomerApiFunctionBCE3D4F0-1WyjSMj5GKPb",
+      "success": true,
+      "statusCode": 200,
+      "duration": 3384,
+      "response": "{}"
+    },
+    {
+      "name": "プロジェクト一覧取得",
+      "functionName": "WeatheringProjectStack-ProjectApiFunction931A0493-RS5XbBlbKxgS",
+      "success": true,
+      "statusCode": 200,
+      "duration": 3418,
+      "response": "{}"
+    },
+    {
+      "name": "プロジェクト作成",
+      "functionName": "WeatheringProjectStack-ProjectApiFunction931A0493-RS5XbBlbKxgS",
+      "success": true,
+      "statusCode": 200,
+      "duration": 3183,
+      "response": "{}"
+    },
+    {
+      "name": "測定データ一覧取得",
+      "functionName": "WeatheringProjectStack-MeasurementApiFunction87069-SDaRP0fzM5ow",
+      "success": true,
+      "statusCode": 200,
+      "duration": 4963,
+      "response": "{}"
+    },
+    {
+      "name": "測定データ作成",
+      "functionName": "WeatheringProjectStack-MeasurementApiFunction87069-SDaRP0fzM5ow",
+      "success": true,
+      "statusCode": 200,
+      "duration": 2646,
+      "response": "{}"
+    },
+    {
+      "name": "レポート一覧取得",
+      "functionName": "WeatheringProjectStack-ReportGeneratorFunction9B20-90lWr7dbMqNC",
+      "success": true,
+      "statusCode": 200,
+      "duration": 2907,
+      "response": "{}"
+    },
+    {
+      "name": "レポート生成",
+      "functionName": "WeatheringProjectStack-ReportGeneratorFunction9B20-90lWr7dbMqNC",
+      "success": true,
+      "statusCode": 200,
+      "duration": 2560,
+      "response": "{}"
+    }
+  ]
+}

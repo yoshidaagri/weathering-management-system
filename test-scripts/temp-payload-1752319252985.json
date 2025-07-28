@@ -1,0 +1,1 @@
+{"httpMethod":"POST","path":"/projects/test-project-id/reports","pathParameters":{"projectId":"test-project-id"},"body":"{\"type\":\"monthly\",\"title\":\"テストレポート\",\"period\":{\"start\":\"2024-01-01\",\"end\":\"2024-01-31\"}}","headers":{"Content-Type":"application/json"}}

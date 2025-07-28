@@ -1,0 +1,1 @@
+{"httpMethod":"POST","path":"/projects","body":"{\"name\":\"テストプロジェクト\",\"description\":\"Lambda直接テスト用\",\"location\":\"北海道\",\"targetCO2\":1000}","headers":{"Content-Type":"application/json"}}

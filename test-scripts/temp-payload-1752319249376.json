@@ -1,0 +1,1 @@
+{"httpMethod":"POST","path":"/projects/test-project-id/measurements","pathParameters":{"projectId":"test-project-id"},"body":"{\"pH\":7.2,\"temperature\":15.5,\"flow\":100,\"co2Concentration\":400,\"measuredAt\":\"2025-07-12T11:20:46.393Z\"}","headers":{"Content-Type":"application/json"}}
