@@ -388,12 +388,26 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 </Button>
               </Link>
               
-              <Button variant="outline" className="w-full justify-start" disabled>
-                測定データを表示
-              </Button>
+              <Link href={`/projects/${project.projectId}/measurements`} className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  📊 測定データ管理
+                </Button>
+              </Link>
+
+              <Link href={`/projects/${project.projectId}/measurements/import`} className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  📥 CSV一括取り込み
+                </Button>
+              </Link>
+
+              <Link href={`/projects/${project.projectId}/monitoring`} className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  📈 リアルタイム監視
+                </Button>
+              </Link>
               
               <Button variant="outline" className="w-full justify-start" disabled>
-                レポートを生成
+                📄 レポートを生成 (Phase 8で実装予定)
               </Button>
             </div>
           </Card>

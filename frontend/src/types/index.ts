@@ -209,3 +209,216 @@ export interface ProjectListResponse {
   nextToken?: string;
   total?: number;
 }
+
+// 測定データ関連型定義
+export interface MeasurementData {
+  measurementId: string;
+  projectId: string;
+  timestamp: string;
+  type: 'water_quality' | 'atmospheric' | 'soil';
+  location: {
+    latitude: number;
+    longitude: number;
+    siteName?: string;
+  };
+  values: {
+    // 水質データ
+    ph?: number;
+    temperature?: number;      // ℃
+    turbidity?: number;        // NTU
+    conductivity?: number;     // μS/cm
+    dissolvedOxygen?: number;  // mg/L
+    
+    // 大気データ  
+    co2Concentration?: number; // ppm
+    humidity?: number;         // %
+    airPressure?: number;      // hPa
+    windSpeed?: number;        // m/s
+    
+    // 土壌データ
+    soilPH?: number;
+    soilMoisture?: number;    // %
+    organicMatter?: number;   // %
+    
+    // 重金属濃度
+    iron?: number;            // mg/L
+    copper?: number;          // mg/L
+    zinc?: number;            // mg/L
+    lead?: number;            // mg/L
+    cadmium?: number;         // mg/L
+    
+    // 流量・処理量
+    flowRate?: number;        // L/min
+    processedVolume?: number; // L
+    
+    // CO2除去関連
+    co2Captured?: number;     // kg
+    mineralPrecipitation?: number; // kg
+  };
+  qualityFlags: {
+    dataQuality: 'excellent' | 'good' | 'fair' | 'poor';
+    calibrationStatus: 'calibrated' | 'needs_calibration';
+    anomalyDetected: boolean;
+  };
+  alertLevel: 'normal' | 'warning' | 'critical';
+  notes?: string;
+  operatorId?: string;
+  deviceId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMeasurementRequest {
+  projectId: string;
+  timestamp: string;
+  type: 'water_quality' | 'atmospheric' | 'soil';
+  location: {
+    latitude: number;
+    longitude: number;
+    siteName?: string;
+  };
+  values: Partial<MeasurementData['values']>;
+  qualityFlags?: Partial<MeasurementData['qualityFlags']>;
+  notes?: string;
+  operatorId?: string;
+  deviceId?: string;
+}
+
+export interface UpdateMeasurementRequest {
+  timestamp?: string;
+  type?: 'water_quality' | 'atmospheric' | 'soil';
+  location?: {
+    latitude?: number;
+    longitude?: number;
+    siteName?: string;
+  };
+  values?: Partial<MeasurementData['values']>;
+  qualityFlags?: Partial<MeasurementData['qualityFlags']>;
+  notes?: string;
+  operatorId?: string;
+  deviceId?: string;
+}
+
+export interface MeasurementQuery {
+  limit?: number;
+  nextToken?: string;
+  type?: 'water_quality' | 'atmospheric' | 'soil';
+  startDate?: string;
+  endDate?: string;
+  alertLevel?: 'normal' | 'warning' | 'critical';
+  search?: string;
+}
+
+export interface MeasurementListResponse {
+  measurements: MeasurementData[];
+  nextToken?: string;
+  total?: number;
+}
+
+// CSV取り込み関連型定義
+export interface CSVImportRequest {
+  projectId: string;
+  measurements: CreateMeasurementRequest[];
+  importOptions: {
+    batchSize: number;
+    duplicateHandling: 'skip' | 'overwrite' | 'error';
+    deviceId?: string;
+    operatorId?: string;
+  };
+}
+
+export interface CSVImportResponse {
+  success: boolean;
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+  skipCount: number;
+  errors: Array<{
+    row: number;
+    message: string;
+    data?: any;
+  }>;
+  importId: string;
+}
+
+export interface CSVColumnMapping {
+  timestamp: string;
+  type?: string;
+  latitude?: string;
+  longitude?: string;
+  siteName?: string;
+  ph?: string;
+  temperature?: string;
+  turbidity?: string;
+  conductivity?: string;
+  dissolvedOxygen?: string;
+  co2Concentration?: string;
+  humidity?: string;
+  airPressure?: string;
+  windSpeed?: string;
+  soilPH?: string;
+  soilMoisture?: string;
+  organicMatter?: string;
+  iron?: string;
+  copper?: string;
+  zinc?: string;
+  lead?: string;
+  cadmium?: string;
+  flowRate?: string;
+  processedVolume?: string;
+  co2Captured?: string;
+  mineralPrecipitation?: string;
+  notes?: string;
+  operatorId?: string;
+  deviceId?: string;
+}
+
+export interface CSVValidationSettings {
+  skipInvalidRows: boolean;
+  dateFormat: string;
+  numberFormat: 'decimal' | 'comma';
+  requiredColumns: string[];
+}
+
+export interface CSVPreviewData {
+  headers: string[];
+  rows: Array<Record<string, string>>;
+  totalRows: number;
+  previewRows: number;
+}
+
+// アラート関連型定義
+export interface AlertRule {
+  ruleId: string;
+  projectId: string;
+  parameter: keyof MeasurementData['values'];
+  condition: {
+    operator: '>' | '<' | '=' | '!=' | 'between';
+    threshold: number | [number, number];
+    duration: number; // 継続時間（分）
+  };
+  severity: 'warning' | 'critical';
+  enabled: boolean;
+  notificationMethods: ('email' | 'sms' | 'dashboard')[];
+  recipients: string[];
+  message: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AlertHistory {
+  alertId: string;
+  ruleId: string;
+  projectId: string;
+  measurementId: string;
+  severity: 'warning' | 'critical';
+  parameter: string;
+  value: number;
+  threshold: number | [number, number];
+  message: string;
+  acknowledgedAt?: string;
+  acknowledgedBy?: string;
+  resolvedAt?: string;
+  notes?: string;
+  createdAt: string;
+}

@@ -9,6 +9,15 @@ import {
   UpdateProjectRequest,
   ProjectQuery,
   ProjectListResponse,
+  MeasurementData,
+  CreateMeasurementRequest,
+  UpdateMeasurementRequest,
+  MeasurementQuery,
+  MeasurementListResponse,
+  CSVImportRequest,
+  CSVImportResponse,
+  AlertRule,
+  AlertHistory,
   ApiResponse 
 } from '@/types';
 
@@ -151,11 +160,113 @@ const mockProjects: Project[] = [
   }
 ];
 
+// モック測定データ
+const mockMeasurements: MeasurementData[] = [
+  {
+    measurementId: 'measurement-001',
+    projectId: 'project-001',
+    timestamp: '2024-07-28T09:00:00Z',
+    type: 'water_quality',
+    location: {
+      latitude: 43.0642,
+      longitude: 141.9716,
+      siteName: '夕張市測定ポイントA'
+    },
+    values: {
+      ph: 7.2,
+      temperature: 25.5,
+      turbidity: 2.1,
+      conductivity: 250,
+      dissolvedOxygen: 8.5,
+      co2Concentration: 400,
+      iron: 0.1,
+      copper: 0.05,
+      zinc: 0.2,
+      flowRate: 100.5
+    },
+    qualityFlags: {
+      dataQuality: 'excellent',
+      calibrationStatus: 'calibrated',
+      anomalyDetected: false
+    },
+    alertLevel: 'normal',
+    notes: '正常運転中',
+    operatorId: 'operator-001',
+    deviceId: 'device-001',
+    createdAt: '2024-07-28T09:00:00Z',
+    updatedAt: '2024-07-28T09:00:00Z'
+  },
+  {
+    measurementId: 'measurement-002',
+    projectId: 'project-001',
+    timestamp: '2024-07-28T09:15:00Z',
+    type: 'water_quality',
+    location: {
+      latitude: 43.0642,
+      longitude: 141.9716,
+      siteName: '夕張市測定ポイントA'
+    },
+    values: {
+      ph: 6.9,
+      temperature: 26.1,
+      turbidity: 2.8,
+      conductivity: 265,
+      dissolvedOxygen: 8.2,
+      co2Concentration: 410,
+      iron: 0.15,
+      copper: 0.06,
+      zinc: 0.25,
+      flowRate: 95.8
+    },
+    qualityFlags: {
+      dataQuality: 'good',
+      calibrationStatus: 'calibrated',
+      anomalyDetected: false
+    },
+    alertLevel: 'warning',
+    notes: 'pH値がやや低下傾向',
+    operatorId: 'operator-001',
+    deviceId: 'device-001',
+    createdAt: '2024-07-28T09:15:00Z',
+    updatedAt: '2024-07-28T09:15:00Z'
+  },
+  {
+    measurementId: 'measurement-003',
+    projectId: 'project-002',
+    timestamp: '2024-07-28T10:00:00Z',
+    type: 'atmospheric',
+    location: {
+      latitude: 34.5731,
+      longitude: 135.4631,
+      siteName: '堺市大気測定ポイント'
+    },
+    values: {
+      co2Concentration: 450,
+      humidity: 65,
+      airPressure: 1013,
+      windSpeed: 2.5,
+      temperature: 28.3
+    },
+    qualityFlags: {
+      dataQuality: 'excellent',
+      calibrationStatus: 'calibrated',
+      anomalyDetected: false
+    },
+    alertLevel: 'normal',
+    notes: '通常範囲内',
+    operatorId: 'operator-002',
+    deviceId: 'device-002',
+    createdAt: '2024-07-28T10:00:00Z',
+    updatedAt: '2024-07-28T10:00:00Z'
+  }
+];
+
 class ApiClient {
   private baseUrl: string;
   private accessToken: string | null = null;
   private mockData: Customer[] = [...mockCustomers];
   private mockProjectData: Project[] = [...mockProjects];
+  private mockMeasurementData: MeasurementData[] = [...mockMeasurements];
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -332,6 +443,79 @@ class ApiClient {
     }
     return this.request<{ message: string }>(`/api/projects/${projectId}`, {
       method: 'DELETE',
+    });
+  }
+
+  // 測定データ管理API
+  async getMeasurements(projectId: string, query?: MeasurementQuery): Promise<MeasurementListResponse> {
+    if (USE_MOCK_API) {
+      return this.mockGetMeasurements(projectId, query);
+    }
+
+    const searchParams = new URLSearchParams();
+    
+    if (query?.limit) searchParams.set('limit', query.limit.toString());
+    if (query?.nextToken) searchParams.set('nextToken', query.nextToken);
+    if (query?.type) searchParams.set('type', query.type);
+    if (query?.startDate) searchParams.set('startDate', query.startDate);
+    if (query?.endDate) searchParams.set('endDate', query.endDate);
+    if (query?.alertLevel) searchParams.set('alertLevel', query.alertLevel);
+    if (query?.search) searchParams.set('search', query.search);
+
+    const queryString = searchParams.toString();
+    const endpoint = `/api/projects/${projectId}/measurements${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request<MeasurementListResponse>(endpoint);
+  }
+
+  async getMeasurement(projectId: string, measurementId: string): Promise<{ measurement: MeasurementData }> {
+    if (USE_MOCK_API) {
+      return this.mockGetMeasurement(projectId, measurementId);
+    }
+    return this.request<{ measurement: MeasurementData }>(`/api/projects/${projectId}/measurements/${measurementId}`);
+  }
+
+  async createMeasurement(data: CreateMeasurementRequest): Promise<{ measurement: MeasurementData; message: string }> {
+    if (USE_MOCK_API) {
+      return this.mockCreateMeasurement(data);
+    }
+    return this.request<{ measurement: MeasurementData; message: string }>(`/api/projects/${data.projectId}/measurements`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMeasurement(
+    projectId: string,
+    measurementId: string, 
+    data: UpdateMeasurementRequest
+  ): Promise<{ measurement: MeasurementData; message: string }> {
+    if (USE_MOCK_API) {
+      return this.mockUpdateMeasurement(projectId, measurementId, data);
+    }
+    return this.request<{ measurement: MeasurementData; message: string }>(`/api/projects/${projectId}/measurements/${measurementId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteMeasurement(projectId: string, measurementId: string): Promise<{ message: string }> {
+    if (USE_MOCK_API) {
+      return this.mockDeleteMeasurement(projectId, measurementId);
+    }
+    return this.request<{ message: string }>(`/api/projects/${projectId}/measurements/${measurementId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // CSV一括取り込みAPI
+  async importMeasurementsCSV(data: CSVImportRequest): Promise<CSVImportResponse> {
+    if (USE_MOCK_API) {
+      return this.mockImportMeasurementsCSV(data);
+    }
+    return this.request<CSVImportResponse>(`/api/projects/${data.projectId}/measurements/batch`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
@@ -568,6 +752,215 @@ class ApiClient {
     
     return {
       message: 'プロジェクトを正常に削除しました'
+    };
+  }
+
+  // 測定データ モックAPI実装
+  private async mockGetMeasurements(projectId: string, query?: MeasurementQuery): Promise<MeasurementListResponse> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    let filteredMeasurements = this.mockMeasurementData.filter(m => m.projectId === projectId);
+
+    // フィルタリング
+    if (query?.type) {
+      filteredMeasurements = filteredMeasurements.filter(m => m.type === query.type);
+    }
+
+    if (query?.alertLevel) {
+      filteredMeasurements = filteredMeasurements.filter(m => m.alertLevel === query.alertLevel);
+    }
+
+    if (query?.startDate || query?.endDate) {
+      filteredMeasurements = filteredMeasurements.filter(m => {
+        const measurementTime = new Date(m.timestamp).getTime();
+        const start = query?.startDate ? new Date(query.startDate).getTime() : 0;
+        const end = query?.endDate ? new Date(query.endDate).getTime() : Date.now();
+        return measurementTime >= start && measurementTime <= end;
+      });
+    }
+
+    if (query?.search) {
+      const searchLower = query.search.toLowerCase();
+      filteredMeasurements = filteredMeasurements.filter(m =>
+        m.location.siteName?.toLowerCase().includes(searchLower) ||
+        m.notes?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // 日時順にソート（新しい順）
+    filteredMeasurements.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const limit = query?.limit || 20;
+    const measurements = filteredMeasurements.slice(0, limit);
+
+    return {
+      measurements,
+      nextToken: filteredMeasurements.length > limit ? 'mock-next-token' : undefined,
+      total: filteredMeasurements.length
+    };
+  }
+
+  private async mockGetMeasurement(projectId: string, measurementId: string): Promise<{ measurement: MeasurementData }> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    const measurement = this.mockMeasurementData.find(m => m.measurementId === measurementId && m.projectId === projectId);
+    if (!measurement) {
+      throw new Error('Measurement not found');
+    }
+    
+    return { measurement };
+  }
+
+  private async mockCreateMeasurement(data: CreateMeasurementRequest): Promise<{ measurement: MeasurementData; message: string }> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // アラートレベル自動判定
+    let alertLevel: 'normal' | 'warning' | 'critical' = 'normal';
+    if (data.values.ph && (data.values.ph < 6.5 || data.values.ph > 8.5)) {
+      alertLevel = 'warning';
+    }
+    if (data.values.ph && (data.values.ph < 6.0 || data.values.ph > 9.0)) {
+      alertLevel = 'critical';
+    }
+
+    const newMeasurement: MeasurementData = {
+      measurementId: `measurement-${Date.now()}`,
+      projectId: data.projectId,
+      timestamp: data.timestamp,
+      type: data.type,
+      location: data.location,
+      values: data.values,
+      qualityFlags: {
+        dataQuality: 'good',
+        calibrationStatus: 'calibrated',
+        anomalyDetected: alertLevel === 'critical',
+        ...data.qualityFlags
+      },
+      alertLevel,
+      notes: data.notes,
+      operatorId: data.operatorId,
+      deviceId: data.deviceId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    this.mockMeasurementData.unshift(newMeasurement);
+    
+    return {
+      measurement: newMeasurement,
+      message: '測定データを正常に登録しました'
+    };
+  }
+
+  private async mockUpdateMeasurement(
+    projectId: string, 
+    measurementId: string, 
+    data: UpdateMeasurementRequest
+  ): Promise<{ measurement: MeasurementData; message: string }> {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    const index = this.mockMeasurementData.findIndex(m => m.measurementId === measurementId && m.projectId === projectId);
+    if (index === -1) {
+      throw new Error('Measurement not found');
+    }
+    
+    const updatedMeasurement: MeasurementData = {
+      ...this.mockMeasurementData[index],
+      ...(data as Partial<MeasurementData>),
+      updatedAt: new Date().toISOString()
+    };
+    
+    this.mockMeasurementData[index] = updatedMeasurement;
+    
+    return {
+      measurement: updatedMeasurement,
+      message: '測定データを正常に更新しました'
+    };
+  }
+
+  private async mockDeleteMeasurement(projectId: string, measurementId: string): Promise<{ message: string }> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const index = this.mockMeasurementData.findIndex(m => m.measurementId === measurementId && m.projectId === projectId);
+    if (index === -1) {
+      throw new Error('Measurement not found');
+    }
+    
+    this.mockMeasurementData.splice(index, 1);
+    
+    return {
+      message: '測定データを正常に削除しました'
+    };
+  }
+
+  private async mockImportMeasurementsCSV(data: CSVImportRequest): Promise<CSVImportResponse> {
+    await new Promise(resolve => setTimeout(resolve, 2000)); // CSV処理時間をシミュレート
+    
+    const importId = `import-${Date.now()}`;
+    let successCount = 0;
+    let errorCount = 0;
+    let skipCount = 0;
+    const errors: Array<{ row: number; message: string; data?: any }> = [];
+
+    for (let i = 0; i < data.measurements.length; i++) {
+      const measurementData = data.measurements[i];
+      
+      try {
+        // 重複チェック
+        const exists = this.mockMeasurementData.some(m => 
+          m.projectId === measurementData.projectId && 
+          m.timestamp === measurementData.timestamp &&
+          m.location.latitude === measurementData.location.latitude &&
+          m.location.longitude === measurementData.location.longitude
+        );
+
+        if (exists) {
+          if (data.importOptions.duplicateHandling === 'skip') {
+            skipCount++;
+            continue;
+          } else if (data.importOptions.duplicateHandling === 'error') {
+            errors.push({
+              row: i + 1,
+              message: '重複するデータが存在します',
+              data: measurementData
+            });
+            errorCount++;
+            continue;
+          }
+        }
+
+        // バリデーション
+        if (!measurementData.timestamp) {
+          errors.push({
+            row: i + 1,
+            message: 'タイムスタンプが必須です',
+            data: measurementData
+          });
+          errorCount++;
+          continue;
+        }
+
+        // データ作成
+        const result = await this.mockCreateMeasurement(measurementData);
+        successCount++;
+      } catch (error) {
+        errors.push({
+          row: i + 1,
+          message: error instanceof Error ? error.message : '不明なエラー',
+          data: measurementData
+        });
+        errorCount++;
+      }
+    }
+
+    return {
+      success: errorCount === 0,
+      totalRows: data.measurements.length,
+      successCount,
+      errorCount,
+      skipCount,
+      errors,
+      importId
     };
   }
 }
