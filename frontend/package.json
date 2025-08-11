@@ -23,7 +23,7 @@
     "postcss": "^8.4.39",
     "react-hook-form": "^7.52.1",
     "@hookform/resolvers": "^3.8.0",
-    "zod": "^3.23.8",
+    "zod": "^4.0.17",
     "zustand": "^4.5.4",
     "aws-sdk": "^2.1664.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.614.0",
